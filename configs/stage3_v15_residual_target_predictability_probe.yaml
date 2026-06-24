@@ -1,0 +1,234 @@
+seed: 42
+device: auto
+data:
+  source: file
+  path: dataset/weather.csv
+  timestamp_col: date
+  feature_cols: []
+  target_col: OT
+  csv_encoding: latin1
+  missing_sentinels:
+    - -9999
+  impute_method: time_interpolate
+  normalize: true
+  lookback: 24
+  horizon: 12
+  target_dim: 20
+  train_ratio: 0.55
+  val_ratio: 0.1
+  split_mode: chronological
+model:
+  d_model: 128
+  n_experts: 4
+  latent_dim: 64
+  temporal_encoder: itransformer
+  nhead: 4
+  num_layers: 2
+  dropout: 0.1
+  use_revin: true
+  use_vae: true
+  vae_eval_mode: mean
+train:
+  batch_size: 64
+  lr: 0.0005
+  epochs: 5
+  beta_vae: 0.05
+  lambda_disc: 0.05
+  use_lrp: false
+  lrp_method: rrp
+  save_lrp: false
+  pred_loss_type: mse
+  pred_mae_weight: 0.0
+  pred_huber_delta: 1.0
+  lr_schedule:
+    type: warmup_cosine
+    warmup_epochs: 1
+    min_lr: 0.0001
+    step_size: 5
+    gamma: 0.5
+  weight_decay: 5.0e-05
+invariant:
+  enable: true
+  representation_version: aligned_residual_v15_residual_target_predictability_probe
+  repr_dim: 64
+  hidden_dim: 256
+  dropout: 0.05
+  epochs: 5
+  lambda_forecast: 1.0
+  lambda_inv_forecast: 0.3
+  lambda_residual: 0.5
+  lambda_orth: 0.05
+  lambda_smooth: 0.1
+  lambda_norm: 0.02
+  lambda_hsic: 0.01
+  lambda_barlow: 0.05
+  lambda_temporal_ranking: 0.05
+  temporal_ranking_margin: 0.01
+  lambda_deployed_temporal_ranking: 0.1
+  deployed_temporal_ranking_margin: 0.01
+  lambda_temporal_contrastive: 0.05
+  temporal_contrastive_temperature: 1.0
+  lambda_vicreg_variance: 0.05
+  lambda_vicreg_covariance: 0.01
+  lambda_phi_vicreg_variance: 0.03
+  lambda_phi_vicreg_covariance: 0.01
+  vicreg_variance_target: 0.5
+  use_projected_residual: true
+  stop_gradient_projection_anchor: true
+  zero_init_variant: true
+  zero_init_variant_regressor: true
+online_run:
+  enable: true
+stage3_v2:
+  protocol_version: v15_residual_target_predictability_probe
+  write_step_metrics: true
+  causal_raw_split: true
+  split_safe_imputation: true
+  split_safe_impute_method: causal_ffill_train_median
+  counterfactual_intervention_space: generator_input
+  online_batch_size: 1
+  log_root: logs/s3v15target
+  checkpoint_root: ckpt/s3v15target
+  results_root: results/s3v15target
+  run_id: manual_stage3_v15_residual_target_predictability_probe
+  validation_windows: 5
+  v15_targets:
+    primary:
+      - raw_residual_vector
+      - residual_change_vector
+    secondary:
+      - residual_sign
+  v15_feature_modes:
+    - history_only
+    - fluctuation_only
+    - fluctuation_plus_history
+    - level_offset_only
+    - level_offset_plus_history
+  v15_gate:
+    min_positive_windows: 4
+    min_partial_mse_gain_vs_history: 0.0
+    min_partial_mae_gain_vs_history: 0.0
+    max_harmful_partial_mse_gain: -0.05
+    max_harmful_partial_mae_gain: -0.05
+  v12d_history:
+    protocol: v12e_per_horizon_label_availability
+    lags:
+      - 1
+      - 2
+      - 3
+      - 6
+      - 12
+      - 24
+    label_delay: 0
+    horizon_offsets:
+      - 1
+      - 2
+      - 3
+      - 4
+      - 5
+      - 6
+      - 7
+      - 8
+      - 9
+      - 10
+      - 11
+      - 12
+    include_availability_mask: true
+    standardize: true
+    robust_scale_quantile: 0.75
+    eps: 0.000001
+  residual_teacher:
+    enabled: true
+    version: v15_residual_target_predictability_probe
+    readout_mode: linear
+    readout_scale: true
+    readout_scale_quantile: 0.75
+    readout_eps: 0.000001
+    ridge_grid:
+      - 0.00001
+      - 0.0001
+      - 0.001
+      - 0.01
+    fold_count: 5
+    min_prefix_samples: 64
+    purge_gap: 12
+    signal_mode: fluctuation_delta
+    normalize_vector: true
+    robust_scale_quantile: 0.75
+    signal_eps: 0.000001
+    alpha_mode: per_output_oof
+    allow_negative_alpha: false
+    selected_policy: strict
+    claim_policy: strict
+    calibration_mae_weight: 0.25
+    min_block_pass_fraction: 0.6
+    alpha_grid:
+      - 0.0
+      - 0.025
+      - 0.05
+      - 0.1
+      - 0.2
+      - 0.35
+      - 0.5
+      - 0.75
+      - 1.0
+    min_output_gain: 0.0
+    min_block_mse_gain: 0.0
+    min_block_mae_gain: 0.0
+    min_block_sign_agreement: 0.55
+    reliability_gate_enabled: true
+    reliability_gate_quantile: 0.95
+    min_reliable_fraction: 0.1
+    disable_if_unreliable: false
+    run_teacher_only_diagnostics: true
+    abort_if_teacher_diagnostic_fails: true
+    diagnostic_include_offline_counterfactuals: true
+    diagnostic_min_real_mse_gain: 0.005
+    diagnostic_min_real_mae_gain: 0.002
+    diagnostic_counterfactual_margin: 0.002
+    diagnostic_min_sign_agreement: 0.55
+    diagnostic_min_partial_mse_gain_vs_history: 0.001
+    diagnostic_min_partial_mae_gain_vs_history: 0.0005
+  sensitivity_modes:
+    - real
+    - zero
+    - shuffled
+    - sign_flipped
+    - amplified_2x
+    - amplified_5x
+    - random_matched_norm
+    - conditional_shuffled
+    - conditional_random_matched_norm
+  claim_gate:
+    min_real_mse_gain: 0.005
+    min_real_mae_gain: 0.002
+    counterfactual_margin: 0.002
+    max_real_reject_rate: 0.2
+    rolling_min_window_pass_rate: 1.0
+    require_nonzero_delta: true
+    require_prediction_shift: true
+online:
+  stage3:
+    version: v15_residual_target_predictability_probe
+    enable: true
+    apply_transient: true
+    allow_untrained_generator: false
+    require_aligned_embeddings: true
+    causal_online: true
+    drift_source: delta_phi_v
+    drift_polarity: 1.0
+    canonicalize_delta: false
+    calibrate_delta: false
+    signal_mode: fluctuation_delta
+    normalize_vector: true
+    target_modules:
+      - output_head
+    target_names:
+      - weight
+      - bias
+    max_delta: 0.05
+    max_pred_shift: 0.25
+    blend_alpha: 0.35
+    risk_gate_enable: true
+    risk_gate_threshold: 0.5
+    generator_checkpoint: ""

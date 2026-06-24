@@ -1,0 +1,107 @@
+seed: 42
+device: auto
+data:
+  source: file
+  path: dataset/weather.csv
+  timestamp_col: date
+  feature_cols: []
+  target_col: OT
+  csv_encoding: latin1
+  missing_sentinels:
+    - -9999
+  impute_method: time_interpolate
+  normalize: true
+  lookback: 24
+  horizon: 12
+  target_dim: 20
+  train_ratio: 0.55
+  val_ratio: 0.1
+  split_mode: chronological
+model:
+  d_model: 128
+  n_experts: 4
+  latent_dim: 64
+  temporal_encoder: itransformer
+  nhead: 4
+  num_layers: 2
+  dropout: 0.1
+  use_revin: true
+  use_vae: true
+  vae_eval_mode: mean
+train:
+  batch_size: 64
+  lr: 0.0005
+  epochs: 5
+  beta_vae: 0.05
+  lambda_disc: 0.05
+  use_lrp: false
+  lrp_method: rrp
+  save_lrp: false
+  pred_loss_type: mse
+  pred_mae_weight: 0.0
+  pred_huber_delta: 1.0
+  lr_schedule:
+    type: warmup_cosine
+    warmup_epochs: 1
+    min_lr: 0.0001
+    step_size: 5
+    gamma: 0.5
+  weight_decay: 5.0e-05
+invariant:
+  enable: true
+  representation_version: aligned_residual_v2
+  repr_dim: 64
+  hidden_dim: 128
+  dropout: 0.1
+  epochs: 5
+  lambda_forecast: 1.0
+  lambda_residual: 0.5
+  lambda_orth: 0.1
+  lambda_smooth: 0.2
+  lambda_norm: 0.05
+online_run:
+  enable: true
+stage3_v2:
+  causal_raw_split: true
+  split_safe_imputation: true
+  split_safe_impute_method: causal_ffill_train_median
+  online_batch_size: 1
+  log_root: logs/load_benchmarks/stage3_v2
+  checkpoint_root: checkpoints/stage3_v2
+  results_root: results/stage3_v2
+  run_id: manual_stage3_v2_minimal
+  generator:
+    type: layer_aware_hyperlora
+    hidden_dim: 128
+    rank: 4
+    max_scale: 0.05
+    epochs: 5
+    lr: 0.001
+    lambda_delta: 0.0001
+    lambda_zero: 0.01
+    lambda_shift: 0.01
+  sensitivity_modes:
+    - real
+    - zero
+    - shuffled
+    - sign_flipped
+    - amplified_2x
+    - amplified_5x
+    - random_matched_norm
+online:
+  stage3:
+    version: v2
+    enable: true
+    apply_transient: true
+    allow_untrained_generator: false
+    require_aligned_embeddings: true
+    causal_online: true
+    signal_mode: delta_vector
+    normalize_vector: true
+    target_modules:
+      - experts
+      - output_head
+    max_delta: 0.02
+    max_pred_shift: 0.15
+    blend_alpha: 0.28
+    generator_checkpoint: ""

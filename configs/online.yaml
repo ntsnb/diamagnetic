@@ -1,0 +1,13 @@
+stability:
+  gamma: 0.8
+  window_size: 10
+
+stage2:
+  topk_omega: 20
+  topk_layer: 10
+  lrp_bottleneck: 16
+  ema_eta: 0.01
+  ema_K: 10
+
+stage3:
+  apply_transient: true

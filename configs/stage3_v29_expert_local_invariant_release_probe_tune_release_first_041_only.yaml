@@ -1,0 +1,176 @@
+seed: 42
+device: auto
+
+data:
+  source: file
+  path: dataset/weather.csv
+  timestamp_col: date
+  feature_cols: []
+  target_col: OT
+  csv_encoding: latin1
+  missing_sentinels:
+    - -9999
+  impute_method: time_interpolate
+  normalize: true
+  lookback: 24
+  horizon: 12
+  target_dim: 20
+  train_ratio: 0.55
+  val_ratio: 0.1
+  split_mode: chronological
+
+model_v29:
+  d_model: 128
+  n_experts: 4
+  latent_dim: 64
+  repr_dim: 64
+  expert_hidden_dim: 128
+  history_hidden_dim: 96
+  release_hidden_dim: 96
+  change_memory_hidden_dim: 96
+  env_count: 4
+  router_env_hidden_dim: 64
+  invariant_release_hidden_dim: 128
+  router_invariant_hidden_dim: 64
+  temporal_encoder: itransformer
+  nhead: 4
+  num_layers: 2
+  dropout: 0.1
+  use_revin: true
+  use_vae: true
+  vae_eval_mode: mean
+  zero_init_variant: true
+  use_projected_residual: true
+  projection_eps: 0.00000001
+
+train:
+  batch_size: 64
+  lr: 0.00038
+  epochs: 5
+  beta_vae: 0.05
+  weight_decay: 0.00005
+  lr_schedule:
+    type: warmup_cosine
+    warmup_epochs: 1
+    min_lr: 0.0001
+    step_size: 5
+    gamma: 0.5
+
+invariant:
+  repr_dim: 64
+  lambda_forecast: 1.0
+  lambda_inv_forecast: 0.3
+  lambda_residual: 0.5
+  lambda_orth: 0.05
+  lambda_smooth: 0.1
+  lambda_norm: 0.02
+  lambda_hsic: 0.01
+  lambda_barlow: 0.05
+  lambda_temporal_ranking: 0.05
+  temporal_ranking_margin: 0.01
+  lambda_deployed_temporal_ranking: 0.1
+  deployed_temporal_ranking_margin: 0.01
+  lambda_temporal_contrastive: 0.05
+  temporal_contrastive_temperature: 1.0
+  lambda_vicreg_variance: 0.05
+  lambda_vicreg_covariance: 0.01
+  lambda_phi_vicreg_variance: 0.03
+  lambda_phi_vicreg_covariance: 0.01
+  vicreg_variance_target: 0.5
+  lambda_load_balance: 0.05
+  lambda_env_balance: 0.01
+  lambda_expert_diversity: 0.03
+  lambda_local_inv_forecast: 0.2
+  lambda_history_after_release: 0.08
+  lambda_release_first_increment: 0.41
+  lambda_env_temporal: 0.05
+  lambda_router_stability: 0.12
+  lambda_anchor_preservation: 0.12
+  lambda_env_correction_sparsity: 0.025
+  lambda_release_confidence: 0.08
+  lambda_anchor_diversity: 0.02
+  lambda_release_temporal: 0.04
+  lambda_observable_change_alignment: 0.06
+  lambda_change_readout: 0.3
+  lambda_delayed_change: 0.28
+  lambda_multiscale_change_alignment: 0.1
+  lambda_release_priority_advantage: 0.18
+  release_priority_margin: 0.001
+  lambda_release_state_advantage: 0.12
+  release_state_margin: 0.001
+  lambda_completion_after_release: 0.08
+  completion_after_release_margin: 0.001
+  lambda_release_null: 0.05
+  lambda_counterfactual_shuffle: 0.08
+  counterfactual_shuffle_margin: 0.001
+  lambda_budget_alignment: 0.18
+  lambda_history_budget_cap: 0.035
+  lambda_support_alignment: 0.14
+  lambda_suppression_alignment: 0.1
+  lambda_support_conditioned_advantage: 0.08
+  support_advantage_margin: 0.001
+  lambda_suppression_gate_sparsity: 0.025
+  lambda_local_env_consistency: 0.04
+  lambda_invariant_correction_budget: 0.02
+  lambda_residual_release_alignment: 0.03
+  lambda_residual_release_advantage: 0.08
+  residual_release_advantage_margin: 0.001
+  lambda_expert_release_orthogonal: 0.01
+  lambda_residual_state_noncollapse: 0.01
+  residual_state_std_floor: 0.04
+
+online_run:
+  enable: true
+
+stage3_v2:
+  protocol_version: v29_expert_local_invariant_release_probe
+  write_step_metrics: true
+  causal_raw_split: true
+  split_safe_imputation: true
+  split_safe_impute_method: causal_ffill_train_median
+  counterfactual_intervention_space: generator_input
+  online_batch_size: 1
+  log_root: logs/s3v29expert_tuning
+  checkpoint_root: ckpt/s3v29expert_tuning
+  results_root: results/s3v29expert_tuning
+  run_id: manual_stage3_v29_expert_local_invariant_release_probe_tune_release_first_041_only
+  validation_windows: 5
+  generator:
+    enabled: true
+    type: layer_aware_hyperadapter_v29
+    target_names:
+      - weight
+      - bias
+    target_modules:
+      - base_model.history_output_heads
+      - base_model.variant_output_heads
+      - base_model.memory_output_heads
+      - corrector_heads
+      - router_invariant_head
+  risk_gate:
+    model_type: mlp
+
+online:
+  stage3:
+    version: v29_expert_local_invariant_release_probe
+    enable: true
+    causal_online: true
+    drift_source: pooled_servable_change
+    signal_mode: fluctuation_delta
+    normalize_vector: true
+    drift_polarity: 1.0
+    allow_untrained_generator: false
+    max_delta: 0.01
+    max_pred_shift: 0.1
+    blend_alpha: 1.0
+    target_names: [weight, bias]
+    target_modules:
+      [
+        base_model.history_output_heads,
+        base_model.variant_output_heads,
+        base_model.memory_output_heads,
+        corrector_heads,
+        router_invariant_head,
+      ]
+    risk_gate_enable: true
+    risk_gate_threshold: 0.5

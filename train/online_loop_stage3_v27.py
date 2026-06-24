@@ -1,0 +1,5 @@
+from __future__ import annotations
+
+from train.online_loop_stage3_v26 import run_online_adaptation_v26
+
+run_online_adaptation_v27 = run_online_adaptation_v26

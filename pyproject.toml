@@ -1,0 +1,9 @@
+[project]
+name = "ieee-transactions-latex2e-templates-and-instructions"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "python-pptx>=1.0.2",
+]

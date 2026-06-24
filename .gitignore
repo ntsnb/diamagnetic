@@ -1,0 +1,43 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Local editor / agent state
+.vscode/
+.claude/
+
+# Test and tool caches
+.pytest_cache/
+pytest_tmp_stage3_review/
+
+# LaTeX-generated intermediates
+*.aux
+*.log
+*.fls
+*.fdb_latexmk
+*.xdv
+*.synctex.gz
+
+# Raw research evidence and large generated assets.
+# Keep these on disk and reference them through manifests instead of pushing.
+logs/
+ckpt/
+checkpoints/
+dataset/
+
+# Archived third-party source trees and large external bundles.
+archive/external/
+archive/external_sources/
+archive/references/papers/
+archive/references/extracted_text/
+
+# Generated experiment artifacts are mostly reproducible or bulky.
+# Curated README files and lightweight manifests can be force-added if needed.
+artifacts/

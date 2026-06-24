@@ -1,0 +1,7 @@
+d_model: 128
+n_experts: 4
+latent_dim: 64
+temporal_encoder: transformer
+nhead: 4
+num_layers: 2
+dropout: 0.1

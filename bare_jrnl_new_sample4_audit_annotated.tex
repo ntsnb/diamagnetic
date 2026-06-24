@@ -1,0 +1,885 @@
+﻿\documentclass[journal]{IEEEtran}
+\usepackage{amsmath,amsfonts}
+\usepackage{amssymb}
+\usepackage{algorithmic}
+\usepackage{algorithm}
+\usepackage{array}
+\usepackage[caption=false,font=normalsize,labelfont=rm,textfont=rm]{subfig}
+\usepackage{iftex}
+\ifXeTeX
+  \usepackage{fontspec}
+  \setmainfont{Times New Roman}
+\fi
+\usepackage{textcomp}
+\usepackage{stfloats}
+\usepackage{url}
+\usepackage{verbatim}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{cite}
+\usepackage{placeins}
+\usepackage{balance}
+\ifXeTeX
+  \usepackage{xeCJK}
+  \setCJKmainfont{SimSun}
+\fi
+\usepackage{xcolor}
+\definecolor{auditred}{RGB}{190,0,0}
+\DeclareRobustCommand{\auditbad}[2]{{\color{auditred}#1}{\color{auditred}\textsuperscript{[#2]}}}
+\DeclareRobustCommand{\auditnote}[2]{{\color{auditred}\footnotesize\,[#1：#2]}}
+\newcommand{\auditid}[1]{\textcolor{auditred}{\textbf{[#1]}}}
+\hyphenation{op-tical net-works semi-conduc-tor IEEE-Xplore}
+% updated with editorial comments 8/9/2021
+
+% Float-page tuning: avoid small double-column figures occupying a nearly empty page.
+\makeatletter
+\setcounter{topnumber}{2}
+\setcounter{dbltopnumber}{2}
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\dbltopfraction}{0.9}
+\renewcommand{\textfraction}{0.05}
+\renewcommand{\floatpagefraction}{0.85}
+\renewcommand{\dblfloatpagefraction}{0.85}
+\setlength{\@fptop}{0pt}
+\setlength{\@fpbot}{0pt plus 1fil}
+\setlength{\@dblfptop}{0pt}
+\setlength{\@dblfpbot}{0pt plus 1fil}
+\makeatother
+
+\begin{document}
+
+\title{\auditbad{A Sample Article Using IEEEtran.cls\\ for IEEE Journals and Transactions}{P01}}
+
+\author{\auditbad{IEEE Publication Technology,~\IEEEmembership{Staff,~IEEE,}}{P01}
+        % <-this % stops a space
+\thanks{\auditbad{This paper was produced by the IEEE Publication Technology Group. They are in Piscataway, NJ.}{P01}}% <-this % stops a space
+\thanks{\auditbad{Manuscript received April 19, 2021; revised August 16, 2021.}{P01}}}
+
+% The paper headers
+\markboth{\auditbad{Journal of \LaTeX\ Class Files,~Vol.~14, No.~8, August~2021}{P01}}%
+{\auditbad{Shell \MakeLowercase{\textit{et al.}}: A Sample Article Using IEEEtran.cls for IEEE Journals}{P01}}
+
+\IEEEpubid{\auditbad{0000--0000/00\$00.00~\copyright~2021 IEEE}{P01}}
+% Remember, if you use this you must call \IEEEpubidadjcol in the second
+% column for its text to clear the IEEEpubid mark.
+
+\maketitle
+
+\begin{abstract}
+This paper studies online multivariate regional load forecasting under \auditbad{delayed feedback}{P03} and distribution shift. We develop a plug-and-play forecasting framework that combines invariant representation learning, factor-based expert modeling, and a three-stage online controller. The framework separates stable predictive structure from variant fluctuations, \auditbad{performs relevance-guided sparse updates only when experts become unstable}{P13}, and applies transient drift compensation at inference time. Extensive experiments on multiple load forecasting datasets and multiple transformer-based backbones show that the proposed framework \auditbad{consistently improves over frozen deployment and representative online baselines}{P04} under shifted online streams.\auditnote{P04}{需改为证据范围内的表述：相对 Frozen 有增益、对在线基线为 competitive，不能写成普遍超越。}
+\end{abstract}
+
+\begin{IEEEkeywords}
+online load forecasting, multivariate time series, distribution shift, invariant learning, transformer backbone, \auditbad{delayed feedback}{P03}.
+\end{IEEEkeywords}
+
+\section{Introduction}
+Regional load forecasting in real deployment environments is inherently nonstationary. Seasonal transitions, weather fluctuations, and changing demand patterns cause the online test stream to deviate from the distribution seen during offline training. In such settings, a strong offline forecaster alone is often insufficient, while naive online fine-tuning can be unstable under \auditbad{delayed labels}{P03} and concept drift. This motivates an online forecasting framework that can preserve stable mechanisms, localize unstable components, and adapt conservatively when the distribution shifts.
+
+The method developed in this paper follows that principle. We first isolate invariant predictive structure through environment-aware representation learning, then model dynamic load-generation mechanisms through a factorized multi-expert forecasting backbone, and finally perform structured online adaptation through Stage~I, Stage~II, and Stage~III. Stage~I recalibrates the factor mixture under \auditbad{delayed labels}{P03}, Stage~II \auditbad{performs relevance-guided sparse expert updates when instability is detected}{P13}, and Stage~III applies transient correction based on the discrepancy between variant and invariant representations.
+
+Unlike methods tied to a single predictor, the proposed design is formulated as a plug-and-play framework. The same online controller can be combined with \auditbad{multiple transformer-based backbones}{P23}, which allows the experiments to evaluate both forecasting strength and backbone generality. The following sections present the problem formulation, the method, and the empirical validation.
+
+\section{Preliminaries}
+\subsection{Notation}
+Let $\{\mathbf{x}_t\}_{t=1}^{T}$ denote a multivariate time series, where $\mathbf{x}_t \in \mathbb{R}^{N}$ and $N$ is the number of observed variables. We formulate time-series forecasting via a sliding-window scheme: for each reference time $t$, an input lookback window of length $L$ is used to predict an output horizon window of length $H$. Specifically, we define the input window $\mathbf{X}_t \triangleq [\mathbf{x}_{t-L+1},\ldots,\mathbf{x}_t] \in \mathbb{R}^{L \times N}$ and the output window $\mathbf{Y}_t \triangleq [y_{t+1},\ldots,y_{t+H}] \in \mathbb{R}^{H}$, where $y_t$ denotes the target variable. The formulation extends directly to multivariate targets by letting $\mathbf{Y}_t \in \mathbb{R}^{H \times d_{\mathrm{out}}}$.
+
+A forecasting model $f_{\theta}: \mathbb{R}^{L \times N} \rightarrow \mathbb{R}^{H}$ parameterized by $\theta$ maps past observations to future targets, and $\widehat{\mathbf{Y}}_t = f_{\theta}(\mathbf{X}_t)$. Given a pointwise loss function $\ell(\widehat{\mathbf{Y}}_t,\mathbf{Y}_t)$, standard training minimizes the empirical risk over the training set\auditnote{P08}{此处集合上标仍用 N，但前文 N 已定义为变量数；训练样本数建议改为 M 或 $T_s$。} $\mathcal{D}_{\mathrm{tr}}=\{(\mathbf{X}_t,\mathbf{Y}_t)\}_{t=1}^{N}$, formulated as:  $\min_{\theta}\frac{1}{N}\sum_{t=1}^{N}\ell\big(f_{\theta}(\mathbf{X}_t),\mathbf{Y}_t\big)$.
+
+\subsection{Online Learning in OOD Settings}
+Let $P_{\mathrm{tr}}(X,Y)$ and $P_{\mathrm{te}}(X,Y)$ denote the joint distributions of input windows $X$ and targets $Y$ for training and test. OOD forecasting has $P_{\mathrm{te}}(X,Y)\neq P_{\mathrm{tr}}(X,Y)$ and can be characterized by the following shifts.
+
+\textbf{Covariate shift.} $P_{\mathrm{te}}(X)\neq P_{\mathrm{tr}}(X)$; the input marginal changes, e.g., meteorological covariates differ across years or net-load profiles shift after large-scale renewable integration.
+
+\textbf{Label shift.} $P_{\mathrm{te}}(Y)\neq P_{\mathrm{tr}}(Y)$; the target marginal changes, e.g., electrification increases mean load or industrial expansion alters peak frequency, causing bias under historical target density.
+
+\textbf{Conditional shift.} $P_{\mathrm{te}}(Y|X)\neq P_{\mathrm{tr}}(Y|X)$; the mapping from history to future changes due to altered influence mechanisms among variables, e.g., demand response changes load sensitivity to temperature.
+
+\textbf{Latent shift induced by unobserved variables.} Let $Z$ denote unobserved drivers affecting both $X$ and $Y$. Changes in $P_{\mathrm{te}}(Z)\neq P_{\mathrm{tr}}(Z)$ can induce joint shifts in observed variables. In load forecasting, such shifts may be triggered by extreme weather or public health emergencies, e.g., sudden demand changes beyond recorded covariates.
+
+  \begin{figure}[!t]
+  \centering
+  \subfloat[\footnotesize \textbf{Conventional deep forecasting.} Conventional deep forecasters learn $P(Y|X)$ from historical data under $P_{\mathrm{tr}}(X,Y)$. When an unobserved driver $Z$ influences both $X$ and $Y$, a deployment shift in $P(Z)$ can induce changes in the effective conditional $P(Y|X)$, thereby breaking the training-stage relationship and degrading performance. ]
+  {\includegraphics[width=0.8\linewidth]{fig2.jpg}\label{fig:dist_shift_b}}\\
+  \vspace{0.5em}
+  \subfloat[\footnotesize \textbf{Invariant learning module.}  ]
+  {\includegraphics[width=0.8\linewidth]{fig1.jpg}\label{fig:dist_shift_a}}\\
+  \caption{Examples of distribution shifts.}
+  \label{fig:dist_shift}
+  \end{figure}
+
+In practice, multiple shift types can co-occur, complicating OOD generalization. This motivates online learning in OOD settings to mitigate distribution drift by continually transforming newly observed series into training samples and updating model parameters to minimize forecast errors on recent data. However, conventional online learning faces three structural constraints: (i) due to the feedback delay in \auditbad{Section~1}{P08}, updates can only use labels arriving at least \auditbad{$L$ steps later}{P08}; (ii) the online phase may encounter novel operating regimes outside the historical distribution. (iii) some distribution drift is caused by variant unobserved factors. If updates are not applied selectively, the model can overfit and experience sustained performance degradation after the drift subsides. 
+
+Therefore, a proactive online adaptation framework is needed to (i) enable rapid parameter adjustment under drift, and (ii) explicitly classify stable, long-term changes from fluctuations driven by variant unobserved factors, so that different online learning strategies can be applied accordingly.
+
+\subsection{Structural Causal Model}
+
+To provide a principled basis for such selective adaptation, \auditbad{Structural Causal Model (SCM) is introduced to represent latent drivers and causal mechanisms, providing a principled basis for reasoning}{P10}. SCM consists of endogenous variables $V$, exogenous variables $U$, structural assignments $V_i \leftarrow f_i(\mathrm{Pa}(V_i), U_i)$ for each $V_i \in V$, and a joint distribution $P(U)$ over the exogenous variables. The directed graph induced by the parent sets $\mathrm{Pa}_i$ encodes direct causal effects among variables. \auditbad{The induced directed graph encodes direct causal effects.}{P10}
+
+\section{Methodology}
+\subsection{Overview}
+% To clarify the limitations of existing OOD forecasting frameworks and motivate our targeted improvements, the paper organizes this section around three research questions.
+
+\auditbad{\textbf{RQ1:}}{P06} 
+
+% For existing OOD frameworks, identifying $X_I$ and $Y_I$ from data is generally infeasible in practice due to unobserved drivers $Z$. How can we quantify the impact of $Z$ on $X$ and $Y$ and thereby obtain principled approximations of $X_I$ and $Y_I$?
+
+\auditbad{\textbf{RQ2:}}{P06} 
+
+% Learning a stable conditional relation $P(Y_I|X_I)$ is the primary objective for robust OOD forecasting. How should the stable relation $P(Y_I|X_I)$ be represented in a forecasting model, such that stability can be represented and enforced under distribution shifts?
+
+\auditbad{\textbf{RQ3:}}{P06} 
+
+% Urban load series are mixtures of heterogeneous components, each governed by its own stable interaction mechanism among variables. Consequently, the effective relation captured by training can be a superposition of multiple component specific conditionals $\{P_{f_i}(Y_I|X_I)\}$. How can we disentangle and learn these specific relations?
+
+% This work targets robust Out-of-Distribution Short-term Urban Load Forecasting by developing an causality informed invariant learning framework, which learns a stable predictive relation $P(Y_I|X_I)$ between invariant features $X_I$ and the sufficiently predictable component $Y_I$ across different environments. Specifically, we apply the Fast Fourier Transform (FFT) to retain the top $K$ dominant frequency components, and define a unified Periodic Window (PW) using the Least Common Multiple (LCM) of their periods. The framework then partition each PW into Frequency Specific Sub-windows (FW) and use a multi branch architecture to extract frequency wise representations. Each branch is equipped with a Two-stage Attention layer to extract cross-time and cross-variable dependency. To promote the extraction of $X_I$, we compute cross-variable attention maps for FW in each frequency branch and maximize the similarity of maps at aligned time positions across adjacent PW. To approximate $Y_I$ and reduce the interference from unobserved drivers $Z$, we introduce Causal Directed Acyclic Graph (DAG) to quantify the causal contribution of the observed inputs $X$ and unobserved variables $Z$ to the target $Y$, and use the estimated strengths to reweight sample contributions in the training loss.
+
+The methodology is organized as follows: invariant learning for stable components is defined first, followed by the factor-mechanism forecasting backbone, and finally the \auditbad{two-stage online adaptation}{P05}.
+
+\subsection{\auditbad{The decomposition of ... using Invariant Learning}{P07}}
+To separate long-term changes from variant fluctuations, an invariant learning module is introduced to extract features $\mathbf{X}_{\mathrm{I}}$ and a sufficiently predictable component $\mathbf{Y}_{\mathrm{suf}}$ whose conditional relation $P_e(\mathbf{Y}_{\mathrm{suf}}|\mathbf{X}_{\mathrm{I}})$ is invariant across environments (Fig.~1(b)). $\mathbf{X}_{\mathrm{I}}$ is the subset of inputs $\mathbf{X}$ that provides sufficient, environment-stable predictive information for $\mathbf{Y}_{\mathrm{suf}}$, and both are intended to exclude variant effects from unobserved factors. The following \auditbad{invariance assumption}{P11} is adopted:
+
+\begin{equation}
+\mathbf{Y}=\alpha(Z)\mathbf{Y}_{\mathrm{suf}}+\beta(Z) \mathbf{1}.
+\end{equation}
+Here $\alpha(Z)$ and $\beta(Z)$ are mapping functions of $Z$. The effect of $Z$ is mitigated via Instance Residual Normalization (IRN):
+\begin{equation}
+\tilde{\mathrm{Res}}_t=\frac{Y_t-\mu(Y_t)}{\sigma(Y_t)}-\frac{\widehat{Y}_t-\mu(\widehat{Y}_t)}{\sigma(\widehat{Y}_t)},
+\end{equation}
+where $\mu(\cdot)$ and $\sigma(\cdot)$ denote the mean and standard deviation. \auditbad{IRN ensures the residuals have mean 0 and variance $2-2\mathrm{cov}(\widehat{Y},Y)$}{P11}, where $\mathrm{cov}$ denotes the covariance. This yields the surrogate loss
+\begin{equation}
+\ell(\widehat{Y},Y)=\mathrm{MSE}(\tilde{\mathrm{Res}},0).
+\end{equation}
+
+To mitigate the effect of $Z$ on $X$, \auditbad{an adversarial pair $\mathcal{M}_{\mathrm{EI}}$ and $\mathcal{M}_{\mathrm{IL}}$ is optimized in an alternating manner}{P12}. $\mathcal{M}_{\mathrm{EI}}$ infers environments from the variant features retained by $\mathcal{M}_{\mathrm{IL}}$, while $\mathcal{M}_{\mathrm{IL}}$ removes features that enable accurate environment inference. At convergence, $\mathcal{M}_{\mathrm{IL}}$ preserves invariant features $\phi^{*}(X)$ and $\mathcal{M}_{\mathrm{EI}}$ fails to predict environment labels $E_{\mathrm{infer}}$. 
+%This interaction is formulated as:
+% \begin{align}
+% E_{\mathrm{infer}}^{*} = \min_{E_{\mathrm{infer}}}\ \mathcal{H}(Y_{\mathrm{suf}}|\phi^{*}(X),E_{\mathrm{infer}})-\mathcal{H}(Y_{\mathrm{suf}}|\phi^{*}(X)). \\
+% \phi^{*}=\arg\max_{\phi}\ I\!\left(Y_{\mathrm{suf}};\phi(X)\right)-I\!\left(Y_{\mathrm{suf}};E_{\mathrm{learn}}^{*}\,|\,\phi(X)\right).
+% \end{align}
+% where $\mathcal{H}(\cdot)$ denotes Shannon conditional entropy,
+
+Specifically, $\mathcal{M}_{\mathrm{EI}}$ maintains multiple environment-specific regressors $\rho^{(e)}$; each regressor defines a prototype prediction that serves as the center of a cluster in the representation space. The distance to environment $e$ is measured by the sufficient loss $\ell_{\mathrm{suf}}(\rho^{(e)}(\phi^{*}(X_t)),Y_t)$, and labels are assigned to the closest center. Let $D_e$ be the samples assigned to environment $e$. This phase consists of two substeps: regression fitting and label reassignment. In the regression fitting step, we fit $\rho^{(e)}$ by minimizing the regression loss on each environment:
+\begin{equation}
+\begin{aligned}
+&\mathbb{E}_{e\in E_{\mathrm{infer}}}R^{(e)}(\rho,\phi) \\
+&= \min_{\{\rho^{(e)}\}}\sum_{e\in E_{\mathrm{infer}}}\frac{1}{|D_e|}
+\quad \sum_{(X,Y)\in D_e}\ell\!\left(\rho^{(e)}(\phi^{*}(X)),Y\right).
+\end{aligned}
+\end{equation}
+In the reassignment step, the environment label of each sample is updated by the shortest loss:
+\begin{equation}
+E_{\mathrm{infer}}(t)\leftarrow \arg\min_{e\in E_{\mathrm{infer}}}\ \ell\!\left(\rho^{(e)}(\phi^{*}(X_t)),Y_t\right),
+\end{equation}
+and optionally apply a \auditbad{temporal smoothing step via majority voting over a radius $r$}{P12}:
+\begin{equation}
+E_{\mathrm{infer}}(t)\leftarrow \mathrm{mode}\{E_{\mathrm{infer}}(t+j)\}_{j=-r}^{r}.
+\end{equation}
+
+The invariant-learning module consists of two branches: an invariant branch $\mathcal{M}_{\mathrm{IL}}$ and a variant branch $\mathcal{M}_{\mathrm{V}}$, with output embeddings $\phi_{\mathrm{I}}(X_t)$ and $\phi_{\mathrm{V}}(X_t)$. The invariant branch is learned by minimizing the environment-robust objective:
+\begin{equation}
+\min_{\rho,\phi}\ \mathcal{L}_{\mathrm{TIL}}
+=\mathbb{E}_{e\in E_{\mathrm{infer}}}R^{(e)}(\rho,\phi)
+\,+\lambda_1\,\mathrm{Var}_{e\in E_{\mathrm{infer}}} R_{\mathrm{suf}}^{(e)}(\rho,\phi),
+\end{equation}
+where the variance penalty $\mathrm{Var}_{e\in E_{\mathrm{infer}}} R_{\mathrm{suf}}^{(e)}(\rho,\phi)$ encourages invariance across environments. The variant branch shares the same architecture and embedding dimensionality but relaxes the variance penalty via a smaller $\lambda_2$, retaining more variation. This design enables controlled comparison of how variant fluctuations influence embeddings and provides a basis for subsequent online adaptation strategies that explicitly target variant effects. 
+% $\lambda_2$ therefore controls how much variation is retained in the parallel channel.
+
+% Concretely, $\\mathcal{M}_{\\mathrm{V}}$ is introduced with the same architecture and dimensionality as $\mathcal{M}_{\mathrm{IL}}$, so the two embeddings are isomorphic in shape and scale:
+% \begin{equation}
+% \phi_{\mathrm{I}}(X)=\mathcal{M}_{\mathrm{IL}}(X),\qquad \\phi_{\\mathrm{V}}(X)=\\mathcal{M}_{\\mathrm{V}}(X).
+% \end{equation}
+% Unlike $\mathcal{M}_{\mathrm{IL}}$, $\\mathcal{M}_{\\mathrm{V}}$ is trained without the environment-adversarial loss and therefore retains environment-sensitive and short-term variations in its embedding. The isomorphic design keeps the two channels comparable, while the absence of adversarial suppression allows $\\phi_{\\mathrm{V}}$ to preserve variant fluctuations that are intentionally excluded from $\phi_{\mathrm{I}}$.
+Implementation details of $\mathcal{M}_{\mathrm{EI}}$ and $\mathcal{M}_{\mathrm{IL}}$ are summarized in Section~IV-E. Next, the factor-mechanism modeling that underpins the forecasting backbone and enables expert-wise causal analysis is described.
+
+% Temporal environments are inferred in two alternating steps on learned representations $\phi_X$. In the E-step, an environment label $e$ is assigned to each sample by reallocation that maximizes the sensitivity of $e$ to variant factors by minimizing the conditional entropy
+% \begin{equation}
+% \mathcal{H}_{Y_{\mathrm{suf}}|\phi_X,e}
+% \end{equation}
+% relative to $\mathcal{H}_{Y_{\mathrm{suf}}|\phi_X}$, and we enforce temporal coherence by encouraging adjacent timestamps to share labels. In the M-step, we learn invariant representations by minimizing the worst-environment risk over inferred environments,
+% \begin{equation}
+% \min_{\theta}\max_{e\in E_{\mathrm{infer}}}\mathbb{E}_{P_e^{X,Y}}\ell_{\theta},
+% \end{equation}
+% and use inferred labels to penalize environment-dependent correlations in $\phi_X$. Here $\ell_{\theta}$ denotes the forecasting loss computed from predictions and targets. This FOIL-based module isolates variant effects in both $X$ and $Y$ while keeping our focus on the proposed online adaptation framework.
+
+
+% As shown in Fig.~1(a), conventional deep forecasters learn $P(Y|X)$ from historical data under $P_{\mathrm{tr}}(X,Y)$. When an unobserved driver $Z$ influences both $X$ and $Y$, a deployment shift in $P(Z)$ can induce changes in the effective conditional $P(Y|X)$, thereby breaking the training-stage relationship and degrading performance. 
+
+% This motivates invariant learning, which aims to extract features whose predictive relation with $Y$ remains stable across environments.
+
+% \subsection{Invariant Learning for OOD Generalization}
+% Invariant learning addresses out of distribution generalization by exploiting heterogeneity across environments. Given a dataset collected from multiple environments, where each environment $e$ induces a distinct distribution $P_e(X,Y)$, invariant learning seeks a predictor that performs well under unseen shifts by minimizing the worst environment risk, $\min_{\theta}\max_{e\in \mathrm{supp}(E)} \mathbb{E}_{P_e(X,Y)}\!\left[\ell\!\left(f_{\theta}(X),Y\right)\right]$. The core principle is to identify invariant features that preserve a stable conditional relation with the target across environments while discarding correlations that vary with the environment and are therefore unreliable for deployment. 
+
+% Under a causal invariance view, $X_I$ denotes the subset of input features in $X$ that directly cause the sufficiently predictable component $Y_I$ of the target $Y$, while the remaining input features are grouped as $X_V$ whose association with $Y$ may vary across environments; accordingly, invariant learning aims to identify $X_I$ and learn an environment-invariant conditional $P(Y_I|X_I)$, formalized as: $P_{e}(Y_I|X_I)=P_{e'}(Y_I|X_I),\forall,e,e'\in\mathrm{supp}(E)$.
+
+
+
+
+
+
+\subsection{\auditbad{C}{P07}}
+In real-world load forecasting, observed covariates $\mathbf{x}_t$ (e.g., temperature, humidity, wind speed) rarely cause the load $\mathbf{Y}_t$ directly. Instead, $\mathbf{x}_t$ is assumed to act through latent factor states $\mathbf{F}_t$, each representing an unobserved but physically meaningful driver (e.g., air-conditioning usage intensity or industrial activity). These factors are causally independent, respond to exogenous conditions $\mathbf{x}_t$, and contribute to $\mathbf{Y}_t$ in parallel. The goal is to disentangle factor-specific mechanisms and their time-varying contributions rather than attributing $\mathbf{Y}_t$ directly to $\mathbf{x}_t$. 
+
+Inspired by the conditional-mixture view of dynamic mechanisms, a dynamic graph is modeled as a conditionally weighted superposition of multiple static graphs. Each static graph encodes a distinct, potentially nonlinear interaction pattern, and the weights vary with system state, yielding a factor-model view of dynamic causality.
+
+Consider a multivariate time series $\{\mathbf{x}_t\}_{t=1}^{T}$ with $\mathbf{x}_t\in\mathbb{R}^{N}$. We represent the target $\mathbf{Y}_t$ as a weighted combination of $n_k$ factor generators:
+\begin{equation}
+\begin{aligned}
+\mathbf{Y}_t&=\boldsymbol{\alpha}(t)\odot^{\dagger}\mathbf{f}_{\phi}\!\left(\mathbf{x}_{t-L:t}\right)\\
+&=\sum_{k=1}^{n_k}\alpha_{k}(t)\,f_{\phi_k}\!\left(\mathbf{x}_{t-L:t}\right),
+\end{aligned}
+\end{equation}
+where $f_{\phi_k}$ is the $k$-th factor generator and $\alpha_{k}(t)$ is its coefficient during time window $t-L:t$. Factor coefficients $\boldsymbol{\alpha}(t)$ are obtained through a feature mapping of $\mathbf{z}_{t}$, and they are both assumed stable within the time window:
+\begin{equation}
+\begin{aligned}
+\mathbf{h}_{t}&=m_{\psi}\!\left(\mathbf{x}_{t-L:t}\right),\\
+\mathbf{z}_{t}&=m_{\theta}\!\left(\mathbf{h}_{t}\right),\\
+\boldsymbol{\alpha}(t)&=m_{\eta}\!\left(\mathbf{z}_{t}\right)\in\mathbb{R}^{n_k},
+\end{aligned}
+\end{equation}
+Here $m_{\psi}$ is a temporal Transformer encoder with pooling that yields the summary embedding $\mathbf{h}_t$, $m_{\theta}$ is a variational encoder that models factor features $\mathbf{z}_t$ with mean and variance predicted from $\mathbf{h}_t$, and $m_{\eta}$ maps $\mathbf{z}_t$ to coefficients $\boldsymbol{\alpha}(t)$. Substituting these components yields the forecasting form:
+\begin{equation}
+\begin{aligned}
+\mathbf{Y}_t&=m_{\eta}\left(m_{\theta}\left(m_{\psi}\!\left(\mathbf{x}_{t-L:t}\right)\right)\right)\odot^{\dagger}\mathbf{f}_{\phi}\!\left(\mathbf{x}_{t-L:t}\right)
+\end{aligned}
+\end{equation}
+
+We next detail the temporal encoder $m_{\psi}$, which produces timewise representations via standard self-attention blocks along the time axis. The input is first embedded as $\mathbf{H}_t^{(0)}=\mathbf{Embedding}(\mathbf{X}_t)\in\mathbb{R}^{N\times d_h}$. For each Transformer block, the computation is:
+\begin{equation}
+\begin{gathered}
+\mathbf{Q}=\mathbf{H}_t^{(l)}\mathbf{W}_Q,\quad \mathbf{K}=\mathbf{H}_t^{(l)}\mathbf{W}_K,\quad \mathbf{V}=\mathbf{H}_t^{(l)}\mathbf{W}_V,\\
+\mathrm{Attn}(\mathbf{Q},\mathbf{K},\mathbf{V})=\mathrm{softmax}\!\left(\frac{\mathbf{Q}\mathbf{K}^{\top}}{\sqrt{d_h}}\right)\mathbf{V},\\
+\mathbf{A}^{(l)}=\mathrm{MHA}(\mathbf{H}_t^{(l)})\mathbf{W}_O,\\
+\widetilde{\mathbf{H}}_t^{(l)}=\mathrm{LN}\!\left(\mathbf{H}_t^{(l)}+\mathbf{A}^{(l)}\right),\\
+\mathbf{H}_t^{(l+1)}=\mathrm{LN}\!\left(\widetilde{\mathbf{H}}_t^{(l)}+\mathrm{FFN}\!\left(\widetilde{\mathbf{H}}_t^{(l)}\right)\right).
+\end{gathered}
+\end{equation}
+where $\mathbf{W}_Q,\mathbf{W}_K,\mathbf{W}_V\in\mathbb{R}^{d_h\times d_{(QKV)}}$, and the corresponding global summary embedding $\mathbf{h}_t\in\mathbb{R}^{d_{\mathrm{h}}}$ is obtained from the final layer output $\mathbf{H}_t^{(F)}\in\mathbb{R}^{N\times d_h}$ as $\mathbf{h}_t=\mathrm{MLP}_{h}\!\left(\mathbf{H}_t^{(F)}\right)$.
+
+Given the window representation, a feature vector $\mathbf{z}_t\in\mathbb{R}^{n_k d_b}$ with factor blocks $\mathbf{z}_t=[\mathbf{z}^{(1)}_t;\dots;\mathbf{z}^{(n_k)}_t]$ is introduced, where $\mathbf{z}^{(m)}_t\in\mathbb{R}^{d_b}$ denotes the latent feature associated with the $m$-th factor mechanism and $d_b$ is a shared hyperparameter that sets the dimensions for all factor features. The feature vector $\mathbf{z}_t$ is inferred by a variational encoder with prior distribution $p(\mathbf{z}_t)$ defined as a standard Gaussian and variational posterior $q_{\zeta}(\mathbf{z}_t\mid \mathbf{X}_t)$ parameterized by encoder-predicted mean and diagonal variance:
+\begin{equation}
+\begin{gathered}
+\mathbf{z}_t\sim\mathcal{N}(\mathbf{0},\mathbf{I}),\\
+q_{\zeta }(\mathbf{z}_t\mid\mathbf{X}_t)=\mathcal{N}\!\big(\boldsymbol{\mu}_{\zeta}(\mathbf{h}_t),\mathrm{diag}(\boldsymbol{\sigma}^2_{\zeta}(\mathbf{h}_t))\big).
+\end{gathered}
+\end{equation}
+
+The decoder reconstructs the window via a feedforward network, $\widehat{\mathbf{X}}_t=\mathrm{Dec}_x(\mathbf{z}_t)$. We then map the latent features to factor weights, assumed stable within the window: $\boldsymbol{\alpha}(t)=m_{\eta}(\mathbf{z}_t)\in\mathbb{R}^{n_k}$.
+
+For factor-wise prediction, a sparse mixture-of-experts (MoE) separates the modeling of distinct factors. Each expert corresponds to $f_{\phi_k}$ and is implemented as a Transformer block dedicated to the $k$-th factor; unlike the temporal encoder, these blocks employ multivariate self-attention along the variable axis and yield embeddings $\mathbf{e}^{(m)}_{t,\ell}$. The expert embeddings are first fused with $\boldsymbol{\alpha}(t)$ and then mapped to the output:
+\begin{equation}
+\mathbf{e}_{t,\ell}=\sum_{k=1}^{n_k}\alpha_{k}(t)\,\mathbf{e}^{(m)}_{t,\ell},\qquad
+\widehat{\mathbf{y}}_{t,\ell}=f_o(\mathbf{e}_{t,\ell}).
+\end{equation}
+
+To ensure that experts encode distinct and stable mechanisms rather than redundant correlations, we introduce a relevance-based regularizer. Following layer-wise relevance propagation (LRP), the prediction is decomposed into node-level relevance scores that are propagated backward through the network. Specifically,
+\begin{equation}
+\sum_{d\in V_L}R_d^{(L)}=\cdots=\sum_{d\in V_l}R_d^{(l)}=\cdots=\sum_{d\in V_1}R_d^{(1)}.
+\end{equation}
+where $V_l$ denotes the set of nodes in layer $l$, and $R_d^{(l)}$ denotes the relevance score of node $d\in V_l$, namely, its contribution to the final prediction at layer $l$. This equality explicitly describes the cross-layer contribution relation: the total relevance is conserved when propagated from deep to shallow layers.
+For the transition from layer $l+1$ to $l$, relevance is redistributed as:
+\begin{equation}
+R_i^{(l)}=\sum_{j\in V_{l+1}}\frac{a_i^{(l)}w_{ij}}{\sum_{i'\in V_l}a_{i'}^{(l)}w_{i'j}+b_j}\,R_j^{(l+1)},
+\end{equation}
+which further implies the local conservation relation $\sum_{i\in V_l}R_{i\leftarrow j}^{(l)}=R_j^{(l+1)}$, $\forall\, j\in V_{l+1}$. Here, $a_i^{(l)}$ is the activation of node $i$ in layer $l$, $w_{ij}$ is the weight from node $i$ to node $j$, and $b_j$ is the bias term of node $j$. Larger positive relevance indicates stronger causal contribution.
+
+To quantify differences in the mechanisms captured by factor experts, we define an expert-wise discrepancy using relevance maps. For a target variable $i$, each expert yields a two-dimensional LRP relevance map over the window $t\!-\!L:t$, denoted by $\mathbf{R}_{i,t}^{(m)}\in\mathbb{R}^{N\times L}$, $m=1,\ldots,n_k$, with entries:
+\begin{equation}
+\mathbf{R}_{i,t}^{(m)}[v,\tau]=\left|R_{d(v,\tau)}^{(1,m\rightarrow i,t)}\right|,\quad v=1,\ldots,N,\ \tau=1,\ldots,L.
+\end{equation}
+where $R_{d(v,\tau)}^{(1,m\rightarrow i,t)}$ is the input-layer relevance for variable $v$ at lag $\tau$ when expert $m$ explains target $i$ at time $t$, and $|\cdot|$ keeps magnitude. We treat $\mathbf{R}_{i,t}^{(m)}$ as an $N\times L$ relevance surface and compute discrepancy per variable along the temporal axis. For variable $v\in\{1,\ldots,N\}$, let $\mathbf{r}_{i,v,t}^{(m)}=\mathbf{R}_{i,t}^{(m)}[v,:]\in\mathbb{R}^{L}$.
+To jointly capture temporal-shape mismatch and contribution-magnitude mismatch, a composite discrepancy is defined. First, to quantify contribution magnitude, define the total positive mass:
+\begin{equation}
+M_{i,v}^{(m)}(t)=\sum_{\tau=1}^{L}\mathbf{r}_{i,v,t}^{(m)}(\tau),
+\end{equation}
+Then, to quantify temporal-shape mismatch, each profile $\mathbf{r}_{i,v,t}^{(m)}$ is normalized into a lag distribution:
+\begin{equation}
+\tilde{\mathbf{p}}_{i,v,t}^{(m)}(\tau)=\frac{\mathbf{r}_{i,v,t}^{(m)}(\tau)}{M_{i,v}^{(m)}(t)+\delta},\quad \tau=1,\ldots,L.
+\end{equation}
+Here, $\tilde{\mathbf{p}}_{i,v,t}^{(m)}$ is the lag distribution of expert $m$ for variable $v$ when explaining target $i$ at time $t$.
+For two experts indexed by $p$ and $q$, the shape discrepancy on variable $v$ is:
+\begin{equation}
+\Delta_{i,v}^{\mathrm{shape}}(p,q;t)=W_1\!\left(\tilde{\mathbf{p}}_{i,v,t}^{(p)},\tilde{\mathbf{p}}_{i,v,t}^{(q)}\right),
+\end{equation}
+where $W_1(\cdot,\cdot)$ denotes the Wasserstein Distance between two discrete lag distributions. In parallel, the magnitude discrepancy is defined as:
+\begin{equation}
+\Delta_{i,v}^{\mathrm{mass}}(p,q;t)=\left|M_{i,v}^{(p)}(t)-M_{i,v}^{(q)}(t)\right|.
+\end{equation}
+Accordingly, the variable-level discrepancy $\Delta_{i,v}^{(p,q)}$ is defined by combining the shape and magnitude terms:
+\begin{equation}
+\Delta_{i,v}^{(p,q)}(t)=\Delta_{i,v}^{\mathrm{shape}}(p,q;t)+\lambda_{\mathrm{mass}}\Delta_{i,v}^{\mathrm{mass}}(p,q;t),
+\end{equation}
+where $\lambda_{\mathrm{mass}}$ is the hyperparameter that balances shape mismatch and magnitude mismatch. Finally, the overall discrepancy $\mathcal{D}_{i}(t)$ is obtained by aggregating over variables and expert pairs:
+\begin{equation}
+\mathcal{D}_{i}(t)=\sum_{v=1}^{N}\sum_{1\le p<q\le n_k}\Delta_{i,v}^{(p,q)}(t).
+\end{equation}
+The overall objective function $\mathcal{L}(t)$ consists of the supervised prediction loss, the VAE reconstruction (ELBO) loss, and the relevance-based regularizer. Specifically,
+\begin{equation}
+\mathcal{L}(t)=\mathcal{L}_{\mathrm{pred}}(t)+\lambda_{1}\mathcal{L}_{\mathrm{VAE}}(t)+\lambda_{2}\frac{1}{N}\sum_{i=1}^{N}\mathcal{D}_{i}(t),
+\end{equation}
+where $\lambda_{1}$ and $\lambda_{2}$ weight the VAE loss and the relevance-based regularizer, respectively. The supervised prediction loss over the window is:
+\begin{equation}
+\mathcal{L}_{\mathrm{pred}}(t)=\sum_{\ell=1}^{L}\ell\!\left(\mathbf{y}_{t-L+\ell},\widehat{\mathbf{y}}_{t,\ell}\right).
+\end{equation}
+The VAE objective is composed of a reconstruction term given by the negative log-likelihood and a KL divergence regularizer:
+\begin{equation}
+\begin{gathered}
+\mathcal{L}_{\mathrm{VAE}}(t)=\mathbb{E}_{q_{\zeta}}\!\left[-\log p_{\theta}(\mathbf{X}_t\mid\mathbf{z}_t)\right]\\
++\beta D_{\mathrm{KL}}\!\left(\mathcal{N}(\boldsymbol{\mu}_{\zeta}(\mathbf{h}_t),\mathrm{diag}(\boldsymbol{\sigma}^2_{\zeta}(\mathbf{h}_t)))\,\|\,\mathcal{N}(\mathbf{0},\mathbf{I})\right).
+\end{gathered}
+\end{equation}
+
+% This factorization separates dynamic weighting from factor generation and provides a compact mathematical form for the factor-model setting used in this work.
+
+
+
+\subsection{\auditbad{D}{P07}}
+We now present the \auditbad{two-stage online adaptation}{P05} that operates on top of the factor-mechanism backbone.
+\textbf{Stage I (weight-only adaptation under stable mechanisms).}
+We introduce a stability metric to quantify whether each expert's causal mechanism remains consistent over short horizons. Using the previously defined LRP relevance map $\mathbf{R}_{i,t}^{(m)}$, we normalize it as $\hat{\mathbf{R}}_{i,t}^{(m)}=\mathbf{R}_{i,t}^{(m)}/\|\mathbf{R}_{i,t}^{(m)}\|_{1}$ and define a temporal stability score
+\begin{equation}
+S_{i}^{(m)}(t)=\frac{1}{|\mathcal{W}|}\sum_{\tau\in\mathcal{W}} \cos\!\left(\hat{\mathbf{R}}_{i,t}^{(m)},\hat{\mathbf{R}}_{i,t-\tau}^{(m)}\right),
+\end{equation}
+where $\mathcal{W}$ is a short rolling window. This score measures the consistency of relevance distributions over time. An expert is considered stable if $S_{i}^{(m)}(t)\ge\gamma$, and Stage~I is activated for stable experts.
+
+With stable mechanisms identified, we focus on the remaining short-term variability in how factor features are combined. In this stage, each expert's internal parameters are kept fixed and online adaptation updates only the combination weights. As defined earlier, the factor coefficients are produced from the VAE latent feature vector $\mathbf{z}_t$ through a lightweight feed-forward network $m_{\eta}$, yielding dynamic weights $\boldsymbol{\alpha}(t)=m_{\eta}(\mathbf{z}_t)$.
+The design supports proactive adaptation before labels arrive because the combination weights are generated in real time from $\mathbf{z}_t$. By default, the parameters of the VAE and each expert remain frozen and only $m_{\eta}$ is updated online when delayed labels become available to better recover factor weights from $\mathbf{z}_t$.
+
+ \textbf{Stage II (mechanism-aware adaptation for unstable experts).}
+LRP relevance maps are jointly influenced by the input sample $\mathbf{X}_t$, the model parameters $\theta$, and the factor mechanisms instantiated by each expert. Hence, attributing relevance drift solely to mechanism change is confounded by both parameter evolution and input distribution shift. Stage~II addresses this by (i) stabilizing relevance maps with a slow-moving reference model and (ii) aligning LRP drift to parameter updates via a low-rank adaptation generator while restricting updates to unstable experts and their LRP-localized parameter subsets.
+
+We maintain a reference model with the same architecture but slower weight dynamics, updated by an exponential moving average every $K$ optimization steps:
+\begin{equation}
+\theta_{\mathrm{ref}} \leftarrow (1-\eta)\theta_{\mathrm{ref}} + \eta\,\theta,\qquad \eta\in[0,1).
+\end{equation}
+A scheduled $\eta$ balances early adaptation and long-term stability, allowing $\theta_{\mathrm{ref}}$ to provide stable relevance signals while tracking gradual mechanism evolution.
+
+For the same input window $\mathbf{X}_t$, we compute LRP maps $\mathbf{R}_{i,t}^{(m)}(\theta)$ and $\mathbf{R}_{i,t}^{(m)}(\theta_{\mathrm{ref}})$ from the current and reference models. Their difference isolates mechanism/parameter discrepancies while suppressing confounding by input shift:
+\begin{equation}
+\Delta \mathbf{R}_{i,t}^{(m)} = \mathbf{R}_{i,t}^{(m)}(\theta)-\mathbf{R}_{i,t}^{(m)}(\theta_{\mathrm{ref}}).
+\end{equation}
+
+Let the unstable expert set be $\mathcal{U}_t=\{m \mid S_i^{(m)}(t) < \gamma\}$, where $S_i^{(m)}(t)$ is the stability score from Stage~I. Stage~II updates only the parameters associated with experts in $\mathcal{U}_t$.
+
+For each unstable expert, we first identify input-layer relevance locations with the largest discrepancies, then back-trace these locations to locate the most influential neurons in each layer. The input-layer relevance map is indexed by variable--lag pairs $(v,\tau)$; each location corresponds to node $d(v,\tau)$. Let $\Omega_t=\mathrm{TopK}(|\Delta \mathbf{R}^{(1)}_t|,k_{\Omega})$ denote the set of variable--lag locations with the largest discrepancy. We propagate relevance from $\Omega_t$ to each layer and select the neurons that contribute most to those locations. At layer $l$, we define:
+\begin{equation}
+\mathcal{S}_t^{(l)}=\mathrm{TopK}\Big(\big|\Delta \mathbf{R}^{(l)}_{t,\Omega}\big|,k\Big),\qquad
+\mathcal{S}_t=\bigcup_l \mathcal{S}_t^{(l)}.
+\end{equation}
+Only parameters in $\mathcal{S}_t$ (restricted to experts in $\mathcal{U}_t$) are adapted.
+
+We embed the relevance maps using lightweight LRP encoders:
+\begin{equation}
+\mathbf{h}_{t}=\mathrm{Enc}_{\mathrm{LRP}}\!\left(\mathbf{R}_{i,t}^{(m)}(\theta)\right),\quad
+\mathbf{h}^{\mathrm{ref}}_{t}=\mathrm{Enc}_{\mathrm{LRP}}\!\left(\mathbf{R}_{i,t}^{(m)}(\theta_{\mathrm{ref}})\right),
+\end{equation}
+and define the drift representation $\mathbf{d}_t=\mathbf{h}_{t}-\mathbf{h}^{\mathrm{ref}}_{t}$.
+
+To align LRP drift with parameter changes, we use a \auditbad{parameter-efficient adaptation generator}{P15}. For simplicity, consider a linear transformation in the $l$-th layer with parameters $\boldsymbol{\theta}^{(l)}\in\mathbb{R}^{d_{\mathrm{in}}\times d_{\mathrm{out}}}$. Given a small bottleneck $r\ll\min(d_{\mathrm{in}},d_{\mathrm{out}})$, we compute adaptation coefficients by
+\begin{equation}
+\left[{\boldsymbol{\alpha}}^{(l)}_t,{\boldsymbol{\beta}}^{(l)}_t\right]
+=\mathbf{W}^{(l)}_2\,\sigma\!\left(\mathbf{W}^{(l)}_1\,\mathbf{d}_t+\mathbf{b}^{(l)}\right)+\mathbf{1},
+\end{equation}
+where $\mathbf{W}^{(l)}_1\in\mathbb{R}^{r\times d_c}$, $\mathbf{W}^{(l)}_2\in\mathbb{R}^{(d_{\mathrm{in}}+d_{\mathrm{out}})\times r}$, $\mathbf{b}^{(l)}\in\mathbb{R}^{r}$, $d_c$ is the drift-embedding dimension, and $\sigma(\cdot)$ is the sigmoid. We use layer-wise bias terms $\mathbf{b}^{(l)}$ while sharing $\mathbf{W}_1$ and $\mathbf{W}_2$ across layers of the same type to reduce overhead.
+
+We then construct a binary mask $\mathbf{M}_t^{(l)}\in\{0,1\}^{d_{\mathrm{in}}\times d_{\mathrm{out}}}$ from $\mathcal{S}_t^{(l)}$ and allow updates only on those entries. The adapted parameters are
+\begin{equation}
+\widehat{\boldsymbol{\theta}}^{(l)}_t=\left(\mathbf{M}_t^{(l)}\odot {\boldsymbol{\alpha}}^{(l)}_t {\boldsymbol{\beta}}^{(l)\top}_t\right)\odot \boldsymbol{\theta}_t^{(l)}.
+\end{equation}
+Equivalently, the parameter adjustment is $\Delta\boldsymbol{\theta}^{(l)}_t=\widehat{\boldsymbol{\theta}}^{(l)}_t-\boldsymbol{\theta}_t^{(l)}$, which modifies only masked entries. This ensures that Stage~II adapts only LRP-localized parameters of unstable experts, improving stability in online updates. 
+
+\textbf{Stage III.} To further enhance adaptation to variant fluctuations, a parallel mechanism is introduced that operates on the embeddings produced by the invariant and variant branches of the invariant-learning module. The same \auditbad{parameter-efficient generator is applied to both embeddings}{P15}, and the resulting parameter shifts are \auditbad{optimized using the post-update prediction error}{P13}.
+
+Using the invariant and variant embeddings $\phi_{\mathrm{I}}(X_t)$ and $\phi_{\mathrm{V}}(X_t)$ at time $t$, the concept drift between the two branches is computed as their difference:
+\begin{equation}
+\mathbf{d}^{\mathrm{V}}_t=\phi_{\mathrm{V}}(X_t)-\phi_{\mathrm{I}}(X_t).
+\end{equation}
+This definition aligns with the role of the variant branch stated earlier: it preserves variation relative to the invariant branch and provides a reference for quantifying variant effects in the embedding space. The subsequent parameter update follows the same \auditbad{parameter-efficient adaptation generator as in Stage~II}{P15}, but uses $\mathbf{d}^{\mathrm{V}}_t$ to target variant-induced deviations.
+
+For a linear layer $\boldsymbol{\theta}^{(l)}\in\mathbb{R}^{d_{\mathrm{in}}\times d_{\mathrm{out}}}$, the shared low-rank generator produces adaptation coefficients from each drift,
+\begin{equation}
+\left[\tilde{\boldsymbol{\alpha}}^{(l)}_t,\tilde{\boldsymbol{\beta}}^{(l)}_t\right]
+=\tilde{\mathbf{W}}^{(l)}_2\,\sigma\!\left(\tilde{\mathbf{W}}^{(l)}_1\,\mathbf{d}^{\mathrm{V}}_t+\tilde{\mathbf{b}}^{(l)}\right)+\mathbf{1},
+\end{equation}
+and the adapted parameters used for forecasting at time $t$ are
+\begin{equation}
+\tilde{{\boldsymbol{\theta}}}^{(l)}_t=\left(\tilde{\boldsymbol{\alpha}}^{(l)}_t\tilde{\boldsymbol{\beta}}^{(l)\top}_t\right)\odot \widehat{\boldsymbol{\theta}}^{(l)}_t,
+\end{equation}
+where $\odot$ denotes the element-wise product. The induced adjustment is
+\begin{equation}
+\Delta\boldsymbol{\theta}^{(l)}_t=\left(\tilde{\boldsymbol{\alpha}}^{(l)}_t\tilde{\boldsymbol{\beta}}^{(l)\top}_t-\mathbf{1}\right)\odot \widehat{\boldsymbol{\theta}}^{(l)}_t.
+\end{equation}
+The \auditbad{generator parameters are then updated using the prediction error of the adapted model}{P15}, which strengthens its ability to proactively adjust parameters under variant fluctuations. 
+
+Here $\widehat{\boldsymbol{\theta}}^{(l)}_t$ denotes the parameters after Stage~II at time $t$. Stage~III produces a temporary update on top of these Stage~II parameters for the current step only. The fluctuation update $\Delta\boldsymbol{\theta}^{(l)}_t=\tilde{\boldsymbol{\theta}}^{(l)}_t-\widehat{\boldsymbol{\theta}}^{(l)}_t$ is applied only for prediction at time $t$ and is discarded afterward. At time $t+1$, a new fluctuation update is computed on top of the updated Stage~II parameters, so transient adaptations do not accumulate across steps.
+
+\subsection{\auditbad{E}{P07}}
+We evaluate the proposed framework under both offline forecasting and online adaptation settings. The empirical study is organized around three questions: 1) whether the proposed factor-mechanism architecture provides a strong static forecasting backbone; 2) whether each online stage improves over a frozen deployment baseline under \auditbad{delayed feedback}{P03}; and 3) whether combining Stage~I, Stage~II, and Stage~III yields the \auditbad{strongest overall online performance}{P25}.
+
+\subsubsection{Datasets}
+To align the experiments with the regional load forecasting objective of this paper, the main benchmarks are three multivariate load datasets with exogenous covariates: \textit{Panama}, \textit{Tetouan}, and \textit{Spain Energy--Weather}. The \textit{Panama} dataset contains the national electricity demand together with meteorological variables from multiple cities and calendar indicators. The \textit{Tetouan} dataset contains zonal power consumption together with local weather and solar-flow variables. The \textit{Spain Energy--Weather} dataset contains hourly system load together with weather and degree-day features. In our experiments, the prediction targets are \texttt{nat\_demand} for \textit{Panama}, \texttt{Zone 1 Power Consumption} for \textit{Tetouan}, and \texttt{actual\_load} for \textit{Spain Energy--Weather}. All datasets are processed in chronological order. \auditbad{No random shuffling is applied across the temporal axis}{P17} so as to preserve causal ordering and maintain consistency with the online adaptation scenario.
+
+In addition to these public benchmarks, we further curate a new \textit{Lishui-9} load dataset family from operational records of nine county-level regions in Lishui, Zhejiang Province. The family contains nine county-level multivariate load forecasting tasks with matched meteorological covariates and serves as an additional real-world validation set for all key experimental modules.
+
+For each dataset, the samples are first split chronologically into training and validation subsets with ratios of 55\% and 10\%, respectively. The remaining suffix is reserved for online evaluation under a \auditbad{shifted-stream protocol}{P18} described later. This preserves chronological causality while ensuring that the online deployment stream differs from the offline training regime.
+
+\subsubsection{Data Processing}
+Given a multivariate time series with $N$ variables, sliding-window samples are constructed with a lookback length $L=24$ and a forecasting horizon $H=12$. For each timestamp $t$, the model takes the historical window $\mathbf{X}_{t-L+1:t}\in\mathbb{R}^{L\times N}$ as input and predicts the target trajectory over the next $H$ steps. All variables are standardized using only the statistics computed from the training split, and the same normalization parameters are then applied to the validation and test splits to avoid information leakage.
+
+Standard cleaning and interpolation are applied when needed before sliding-window construction.
+
+\subsubsection{Implementation Details}
+Table~\ref{tab:impl_details} summarizes the default implementation settings used in the main experiments. The factor-mechanism backbone is implemented as a plug-and-play forecasting framework rather than a fixed predictor. Besides the vanilla Transformer, we instantiate the same framework with seven additional transformer-based forecasters, namely iTransformer, PatchTST, Informer, Autoformer, FEDformer, Pyraformer, and Crossformer, while keeping the invariant-learning module, factor-gating module, expert fusion module, and the three online adaptation stages unchanged.
+
+\begin{table*}[t]
+\caption{Implementation details used in the main load-forecasting experiments.}
+\label{tab:impl_details}
+\centering
+\begin{tabular}{ll}
+\toprule
+Category & Setting \\
+\midrule
+Datasets & Panama, Tetouan, Spain Energy--Weather \\
+Chronological split & \auditbad{Train/validation/online-test = 55\%/10\%/35\%}{P18} \\
+Window setting & Lookback $L=24$, forecast horizon $H=12$ \\
+Normalization & Training-split standardization + RevIN in the forecasting backbone \\
+Candidate backbones & Transformer, iTransformer, PatchTST, Informer, Autoformer, FEDformer, Pyraformer, Crossformer \\
+Default backbone width & Hidden dimension 128, 4 attention heads, 2 encoder layers, dropout 0.1 \\
+Mechanism layer & $n_k=4$ experts \\
+Factor generator & Latent dimension 64; \auditbad{VAE gate in the default model}{P26} \\
+Offline optimizer & Adam with warmup-cosine schedule \\
+Offline hyperparameters & Batch size 64, initial learning rate $5\times 10^{-4}$, weight decay $5\times 10^{-5}$, 5 epochs \\
+Auxiliary loss weights & VAE weight 0.05, relevance discrepancy weight 0.05 \\
+Invariant learning & 3 inferred environments, invariant dimension 64, smoothing radius 2, 1 pretraining epoch \\
+Stage~I & Delayed-label gate-bias update with clipping and rollback \\
+Stage~II & Sparse expert-only update with relevance-drift, reconstruction-error, and acceptance gates \\
+Stage~III & Bounded transient correction driven by $\boldsymbol{\phi}_V-\boldsymbol{\phi}_I$ \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+For the broad backbone screening, all candidate backbones are evaluated under the same data split, normalization pipeline, and online protocol, so that the comparison isolates the effect of the forecasting backbone itself. The online-stage definitions are given once in the following protocol subsection.
+
+\subsubsection{Online Evaluation Protocol}
+The online stage is evaluated on the chronologically ordered test stream. Labels arrive with \auditbad{delayed feedback}{P03}, and therefore parameter updates are only triggered after the corresponding delayed target becomes available.\auditnote{P13}{代码审计显示 Stage II/Full 接受门存在当前标签使用风险，需修协议或标成 oracle-assisted。} We compare the following variants:
+\begin{itemize}
+\item \textbf{Baseline}: the offline model is frozen and directly applied to the online stream;
+\item \textbf{Stage~I}: only the factor-weight predictor is adapted online;
+\item \textbf{Stage~II}: only the relevance-guided sparse parameter update is activated for unstable experts;
+\item \textbf{Stage~III}: only the transient variant-drift compensation is activated during inference;
+\item \textbf{Full Model}: Stage~I, Stage~II, and Stage~III are jointly enabled.
+\end{itemize}
+
+Stage~I uses delayed-label supervision together with conservative bias updates, clipping, and rollback protection. \auditbad{Stage~II is triggered only when the relevance-map stability score indicates that an expert becomes unstable}{P13}, and only a small masked subset of expert parameters is allowed to change. Stage~III computes a temporary correction from $\boldsymbol{\phi}_V-\boldsymbol{\phi}_I$ and applies it only to the current prediction step without permanently modifying the model parameters.
+
+\subsubsection{Evaluation Metrics}
+For static forecasting, we report Mean Squared Error (MSE) and Mean Absolute Error (MAE) on the validation and test sets. For online adaptation, we further record the real-time prediction error on the test stream and compare each adaptation variant against the frozen baseline. The main criterion in the online setting is whether \auditbad{each individual stage improves over the baseline}{P25} and whether the joint Stage~I+II+III configuration achieves the \auditbad{best overall online forecasting performance}{P25}.
+
+\subsubsection{Distribution-Shifted Online Protocol}
+To better reflect the motivation of online learning, we additionally evaluate the strongest backbone under a more challenging shifted-stream protocol. Specifically, after fixing the offline training and validation segments, we \auditbad{search within the later candidate region for a contiguous online test block that maximizes the distribution-shift score}{P18} relative to the training windows. The resulting shift scores are 0.1353 on \textit{Panama}, 0.5036 on \textit{Tetouan}, and 0.5504 on \textit{Spain Energy--Weather}, indicating that the online streams used in this protocol differ \auditbad{substantially}{P20} from the offline training distribution, especially on the latter two datasets.
+
+\subsubsection{Comparison with Online Forecasting Baselines}
+We evaluate against seven online baselines under the same shifted-stream protocol and the same iTransformer backbone. All methods start from the same frozen offline checkpoint; only the online update rule differs.
+
+The first three are \emph{model-agnostic online baselines}:
+\begin{itemize}
+\item \textbf{Frozen}: directly deploys the offline model without online adaptation.
+\item \textbf{GD}: performs full-parameter online gradient descent.
+\item \textbf{Head-GD}: restricts online gradient descent to the prediction head.
+\end{itemize}
+
+The remaining four are \auditbad{\emph{representative online forecasting baselines}}{P20}:
+\begin{itemize}
+\item \textbf{OneNet}: adapts a single forecasting network online.
+\item \textbf{SOLID}: \auditbad{uses self-supervised online adaptation under drift}{P20}.
+\item \textbf{SOLID++}: \auditbad{strengthens SOLID with a more aggressive online controller}{P20}.
+\item \textbf{PROCEED}: \auditbad{performs proactive drift-aware online adaptation}{P20}.
+\end{itemize}
+
+Table~\ref{tab:shifted_online_sota} summarizes the shifted-stream comparison under a shared iTransformer backbone and a shared frozen offline checkpoint. The first three adaptive baselines, \textbf{GD}, \textbf{Head-GD}, and \textbf{OneNet}, are model-agnostic online strategies; \textbf{SOLID}, \textbf{SOLID++}, and \textbf{PROCEED} are \auditbad{representative forecasting-time adaptation baselines}{P20}. Each dataset is reported with paired MSE and MAE subcolumns. Fig.~\ref{fig:lishui_shifted_sota_county} further expands the \textit{Lishui-9} family to the county level. Naive online gradient updates are unstable under delayed feedback and explicit distribution shift. In contrast, the proposed controller remains \auditbad{competitive across all four datasets}{P21}: the full Stage~I+II+III model performs best on \textit{Panama} and \textit{Tetouan}, Stage~III alone performs best on \textit{Spain Energy--Weather}, and both Ours-Stage~III and Ours-Full \auditbad{consistently outperform \textbf{Frozen}, \textbf{GD}, \textbf{Head-GD}, \textbf{OneNet}, and \textbf{PROCEED} on the \textit{Lishui-9} family}{P21}, with the remaining gap concentrated against \textbf{SOLID} and \textbf{SOLID++}.
+
+\begin{table*}[t]
+\caption{Comparison with online forecasting baselines under the \auditbad{shifted-stream protocol}{P18} on the iTransformer backbone. Each dataset has paired MSE and MAE subcolumns. The first three adaptive baselines (\textbf{GD}, \textbf{Head-GD}, and \textbf{OneNet}) are model-agnostic, while the remaining methods are \auditbad{forecasting-time adaptation baselines}{P20}. The \textit{Lishui-9} columns report the family-level mean over the nine county tasks. Shift scores are 0.1353 on \textit{Panama}, 0.5036 on \textit{Tetouan}, 0.5504 on \textit{Spain Energy--Weather}, and \auditbad{0.3027}{P18} on \textit{Lishui-9}. Lower is better.}
+\label{tab:shifted_online_sota}
+\centering
+\footnotesize
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{lcccccccc}
+\toprule
+Method & \multicolumn{2}{c}{Panama} & \multicolumn{2}{c}{Tetouan} & \multicolumn{2}{c}{Spain Energy--Weather} & \multicolumn{2}{c}{Lishui-9} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}\cmidrule(lr){8-9}
+ & MSE & MAE & MSE & MAE & MSE & MAE & MSE & MAE \\
+\midrule
+Frozen & 0.2004 & 0.3041 & 0.0841 & 0.1931 & 0.2460 & 0.3576 & 0.2806 & 0.3990 \\
+GD & 1.3342 & 0.8979 & 0.5094 & 0.4939 & 0.8037 & 0.6911 & 0.3750 & 0.4515 \\
+Head-GD & 0.3634 & 0.4505 & 0.0943 & 0.2158 & 0.2859 & 0.3966 & 0.2804 & 0.3994 \\
+OneNet & 0.3534 & 0.4416 & 0.0833 & 0.1932 & 0.2768 & 0.3882 & 0.2779 & 0.3976 \\
+SOLID & 0.2019 & 0.3060 & 0.0893 & 0.2030 & 0.2518 & 0.3639 & \auditbad{0.2762}{P21} & \auditbad{0.3966}{P21} \\
+SOLID++ & 0.4500 & 0.4913 & 0.0940 & 0.2097 & 0.2992 & 0.4015 & \auditbad{0.2757}{P21} & \auditbad{0.3964}{P21} \\
+PROCEED & 0.2042 & 0.3083 & 0.0933 & 0.2054 & 0.2420 & 0.3547 & 0.2795 & 0.3970 \\
+Ours-Stage~III & 0.1977 & 0.3005 & 0.0824 & 0.1907 & 0.2415 & 0.3540 & \auditbad{0.2778}{P21} & \auditbad{0.3972}{P21} \\
+Ours-Full & 0.1974 & 0.3005 & 0.0820 & 0.1901 & 0.2417 & 0.3535 & \auditbad{0.2775}{P21} & \auditbad{0.3969}{P21} \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\subsubsection{Broad Backbone Screening}
+Table~\ref{tab:backbone_screening} reports the broad plug-in screening over eight transformer-based backbones under a \auditbad{shared configuration and a shared online protocol}{P23}. Three trends are immediately visible. First, the proposed framework still benefits from stronger temporal encoders, although the absolute error levels become higher than in the earlier pilot runs because the current benchmark uses a stricter shifted-stream protocol and the same controller settings for all candidate backbones. Under this harder setting, iTransformer remains the strongest backbone, while FEDformer and Crossformer form the second tier with a \auditbad{clear margin}{P20} over the remaining candidates. Second, the Stage~III transient correction yields \auditbad{consistent online gains across all screened backbones}{P23}, indicating that the variant-drift compensation mechanism is not tied to any single predictor design. Third, the full Stage~I+II+III pipeline remains competitive with Stage~III and often further improves over the frozen baseline. This supports the central claim that the proposed method should be understood as a forecasting-and-adaptation framework rather than a customized wrapper around one specific transformer.
+
+\begin{table*}[t]
+\caption{Broad backbone screening on the three main load-forecasting datasets.\auditnote{P23}{表格需绑定唯一 CSV/配置/checkpoint/seed 清单；当前只能中等置信追踪。} \auditbad{Reported numbers are means}{P22} over \textit{Panama}, \textit{Tetouan}, and \textit{Spain Energy--Weather}. Lower is better.}
+\label{tab:backbone_screening}
+\centering
+\begin{tabular}{lccccc}
+\toprule
+Backbone & Offline MSE & Offline MAE & Online Baseline & Online Stage~III & Online Full \\
+\midrule
+iTransformer & 0.2071 & 0.3122 & 0.2077 & 0.2046 & 0.2047 \\
+FEDformer & 0.2018 & 0.3165 & 0.2024 & 0.1995 & 0.1995 \\
+Crossformer & 0.2445 & 0.3418 & 0.2442 & 0.2412 & 0.2412 \\
+Informer & 0.3463 & 0.4073 & 0.3465 & 0.3440 & 0.3436 \\
+Autoformer & 0.3723 & 0.4296 & 0.3728 & 0.3704 & 0.3708 \\
+Pyraformer & 0.5549 & 0.5539 & 0.5554 & 0.5535 & 0.5536 \\
+Transformer & 0.5772 & 0.5676 & 0.5781 & 0.5771 & 0.5770 \\
+PatchTST & 0.6623 & 0.6200 & 0.6632 & 0.6626 & 0.6628 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.95\textwidth]{logs/load_benchmarks/paper_backbone_screening.png}
+\caption{Mean online MSE of the frozen baseline, Stage~III, and the full Stage~I+II+III pipeline across eight plug-in transformer backbones.\auditnote{P23}{图源存在，但缺少精确生成命令、checkpoint 和 run manifest。}}
+\label{fig:backbone_screening}
+\end{figure*}
+
+\subsubsection{Online Variant Comparison Across Eight Backbones}
+The previous top-three comparison is expanded here to all eight candidate backbones so that the online behavior of Stage~II and the full controller can be judged more comprehensively. Table~\ref{tab:all8_online_variants} reports the mean online MSE of the frozen baseline, Stage~II, Stage~III, and the full Stage~I+II+III controller under the \auditbad{tuned online settings}{P24}. Two conclusions are important. First, \auditbad{Stage~III remains the most reliable single online component across all eight backbones}{P24}. Second, \auditbad{Stage~II is generally weaker than Stage~III}{P24} and often only yields modest gains. This does not indicate that Stage~II is ineffective in principle; rather, Stage~II depends on the quality of the relevance-drift estimate and on a sufficiently stable expert decomposition. When the backbone itself is weak, the input-layer discrepancy map is less informative, and the resulting sparse update becomes either noisy or over-conservative. Conversely, for stronger backbones such as iTransformer, FEDformer, and Crossformer, Stage~II stays close to the frozen baseline and is most useful when combined with the other two stages, where Stage~I stabilizes the factor mixture and Stage~III absorbs the strongest short-term variation.
+
+\begin{table*}[t]
+\caption{Online variant comparison across eight transformer-based backbones under the \auditbad{tuned controller settings}{P24}. Numbers are mean online MSE over the three main load datasets. Lower is better.}
+\label{tab:all8_online_variants}
+\centering
+\begin{tabular}{lcccc}
+\toprule
+Backbone & Baseline & Stage~II & Stage~III & Stage~I+II+III \\
+\midrule
+iTransformer & 0.2077 & 0.2078 & 0.2046 & 0.2047 \\
+FEDformer & 0.2024 & \auditbad{0.1892}{P24} & 0.1995 & 0.1995 \\
+Crossformer & 0.2442 & \auditbad{0.1965}{P24} & 0.2412 & 0.2412 \\
+Informer & 0.3465 & \auditbad{0.3048}{P24} & 0.3440 & 0.3436 \\
+Autoformer & 0.3728 & \auditbad{0.3472}{P24} & 0.3704 & 0.3708 \\
+Pyraformer & 0.5554 & \auditbad{0.5175}{P24} & 0.5535 & 0.5536 \\
+Transformer & 0.5781 & \auditbad{0.5631}{P24} & 0.5771 & 0.5770 \\
+PatchTST & 0.6632 & \auditbad{0.6510}{P24} & 0.6626 & 0.6628 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.95\textwidth]{logs/load_benchmarks/paper_backbone_variants_all8.png}
+\caption{Variant-level online comparison across eight transformer-based backbones under the \auditbad{tuned controller settings}{P24}.\auditnote{P24}{表图均需重建单一受控版本后才能支持 Stage II/III 排名结论。}}
+\label{fig:all8_variants}
+\end{figure*}
+\subsubsection{Ablation on Online Stage Combinations}
+To isolate the contribution of each online stage, we evaluate all seven non-empty stage combinations together with the frozen baseline under the same shifted-stream protocol. Instead of compressing the result into a public mean, Table~\ref{tab:ablation_stage_combo} now reports the four datasets separately, and Fig.~\ref{fig:ablation_stage_combo} visualizes them as four dataset-level panels. Fig.~\ref{fig:lishui_stage_combo_county} further decomposes the Lishui family into nine county-level subplots. Three observations are important. First, Stage~III remains the strongest single online module on all four datasets, which is consistent with the earlier finding that transient correction based on $\boldsymbol{\phi}_V-\boldsymbol{\phi}_I$ is the most reliable source of online gain. Second, Stage~I alone provides only a small improvement, while Stage~II alone remains neutral or slightly weaker on several datasets; this again suggests that the main contribution of Stage~II is collaborative rather than standalone. Third, the full Stage~I+II+III pipeline is strongest on \textit{Spain Energy--Weather} and remains competitive on all the other datasets, while the Lishui county plots reveal that the relative ranking among Stage~III, Stage~II+III, and the full controller is county dependent. \auditbad{This confirms that Stage~II becomes beneficial once it operates inside the complete controller}{P25}, where Stage~I stabilizes the factor mixture and Stage~III handles the strongest short-term drift.
+
+\begin{table*}[t]
+\caption{Ablation on online stage combinations under the \auditbad{shifted-stream protocol}{P18}. The four columns report \textit{Panama}, \textit{Tetouan}, \textit{Spain Energy--Weather}, and the \textit{Lishui-9} family mean, respectively. Lower is better.}
+\label{tab:ablation_stage_combo}
+\centering
+\begin{tabular}{lcccc}
+\toprule
+Variant & Panama & Tetouan & Spain Energy--Weather & Lishui-9 \\
+\midrule
+Baseline & 0.2005 & 0.0835 & 0.2462 & 0.2271 \\
+Stage~I & 0.2007 & 0.0833 & 0.2451 & 0.2269 \\
+Stage~II & 0.2006 & 0.0837 & 0.2468 & 0.2271 \\
+Stage~III & 0.1979 & 0.0819 & 0.2427 & \textbf{0.2254} \\
+Stage~I+II & 0.2006 & 0.0839 & 0.2458 & 0.2269 \\
+Stage~I+III & \textbf{0.1973} & 0.0826 & 0.2424 & 0.2256 \\
+Stage~II+III & 0.1980 & 0.0826 & 0.2421 & \textbf{0.2254} \\
+Stage~I+II+III & \auditbad{0.1974}{P25} & \textbf{0.0821} & \textbf{0.2411} & \auditbad{0.2256}{P25} \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.96\textwidth]{logs/load_benchmarks/paper_ablation_stage_combo_by_dataset.png}
+\caption{Stage-combination ablation under the \auditbad{shifted-stream protocol}{P18}. The four panels correspond to \textit{Panama}, \textit{Tetouan}, \textit{Spain Energy--Weather}, and the \textit{Lishui-9} family mean, respectively.}
+\label{fig:ablation_stage_combo}
+\end{figure*}
+
+\subsubsection{Component Ablation}
+Beyond the online-stage combinations, we further ablate the key structural components of the framework. The evaluated variants include removing the invariant-learning branch (\textbf{w/o Invariant}), disabling the discrepancy-localized sparse Stage~II update and updating dense layer parameters instead (\textbf{Dense Stage~II}), replacing the VAE gate by a simple MLP factor-weight generator (\textbf{MLP Gate, no VAE}), removing RevIN normalization (\textbf{w/o RevIN}), and collapsing the expert bank into a single expert (\textbf{Single Expert}). These are the common component variants for which we report all four datasets jointly. Controller-only ablations such as \textbf{w/o LRP in Stage~II}, \textbf{w/o EMA Ref}, \textbf{w/o Rollback/Buffer}, and \textbf{Sync All Experts} remain discussed in the text and logs, but are omitted from Table~\ref{tab:ablation_components} because they were not re-run for the full Lishui family under the same protocol. Table~\ref{tab:ablation_components} and Fig.~\ref{fig:ablation_components} therefore focus on the shared ablations that are fully comparable across the four datasets, while Fig.~\ref{fig:lishui_component_county} provides county-level detail for the Lishui family.
+
+The component ablation reveals a clear hierarchy of importance. \auditbad{Removing RevIN or collapsing the multi-expert factor bank causes the largest degradation on both the public suite and the Lishui family}{P26}, which shows that normalized input statistics and mechanism diversity are both critical for robust load forecasting under shift. \auditbad{Removing the invariant branch also degrades the result on most datasets}{P26}, although the magnitude of the drop is smaller than for the normalization and expert-count ablations. Replacing the VAE gate by a simpler MLP gate remains competitive and even improves several datasets, including the Lishui family. This again suggests that the main gains come from the factorized expert framework and the online adaptation policy rather than from one single latent regularization form. We therefore treat the VAE gate as one valid instantiation of the framework rather than the only effective choice.
+
+\begin{table*}[t]
+\caption{Common component ablation under the shifted-stream protocol. The four columns report \textit{Panama}, \textit{Tetouan}, \textit{Spain Energy--Weather}, and the \textit{Lishui-9} family mean, respectively. Lower is better.}
+\label{tab:ablation_components}
+\centering
+\begin{tabular}{lcccc}
+\toprule
+Variant & Panama & Tetouan & Spain Energy--Weather & Lishui-9 \\
+\midrule
+Full & 0.1981 & 0.0821 & 0.2418 & 0.2777 \\
+w/o Invariant & 0.2025 & 0.0852 & \auditbad{0.2354}{P26} & 0.2816 \\
+Dense Stage~II & 0.1976 & 0.0822 & 0.2422 & 0.2777 \\
+\auditbad{MLP Gate, no VAE}{P26} & \auditbad{\textbf{0.1813}}{P26} & \auditbad{\textbf{0.0744}}{P26} & \auditbad{\textbf{0.2408}}{P26} & \auditbad{\textbf{0.2745}}{P26} \\
+w/o RevIN & 0.2879 & 0.1515 & \auditbad{0.1735}{P26} & 0.9454 \\
+Single Expert & 0.8388 & 0.2351 & 0.8533 & 0.4309 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.96\textwidth]{logs/load_benchmarks/paper_ablation_components_by_dataset.png}
+\caption{Common component ablation under the shifted-stream protocol. The four panels correspond to \textit{Panama}, \textit{Tetouan}, \textit{Spain Energy--Weather}, and the \textit{Lishui-9} family mean, respectively.}
+\label{fig:ablation_components}
+\end{figure*}
+
+\subsubsection{Case Study on Shifted Online Segments}
+To provide a more concrete view of the online behavior, we inspect one \auditbad{representative shifted segment}{P27} from each of the four datasets. Earlier versions of the qualitative figure were visually dominated by the target and full-controller curves because the frozen, Stage~III, and full predictions are often close on easy regions. Therefore, Fig.~\ref{fig:case_study_multidataset} now shows, for each dataset, an \auditbad{automatically selected informative window centered on the largest sustained frozen-versus-full disagreement}{P27}. The left column plots the trajectories of the ground truth, the frozen baseline, Stage~III, and the full Stage~I+II+III controller, together with a zoomed inset on the most discriminative local region. The right column shows the corresponding absolute-error traces. This layout makes the comparison materially clearer: the frozen predictor usually captures the coarse load trend but exhibits visible lag and amplitude mismatch around abrupt local fluctuations, whereas Stage~III and the full controller reduce these local deviations and lower the error envelope over the selected shifted windows.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.96\textwidth]{logs/load_benchmarks/paper_case_study_four_datasets.png}
+\caption{Qualitative case studies on shifted online segments from the four datasets.\auditnote{P27}{窗口按最大分歧选择，只能作为 illustrative case，不能当代表性平均证据。} For each dataset, the left subpanel shows the trajectories of the ground truth, the frozen baseline, Stage~III, and the full Stage~I+II+III controller over an automatically selected informative window, with a zoomed inset on the most discriminative local region. The right subpanel shows the corresponding absolute-error traces, which makes the differences between frozen, Stage~III, and full adaptation visible even when the prediction curves are close.}
+\label{fig:case_study_multidataset}
+\end{figure*}
+
+\subsubsection{Input Relevance Visualization}
+We also visualize the input-layer relevance map produced by the strongest online configuration on the same four datasets. Fig.~\ref{fig:relevance_case_multidataset} shows the relevance heatmap of \auditbad{representative online steps selected from regions where the online correction produces one of the largest improvements over the frozen baseline}{P28}. Across the four panels, the controller does not react uniformly over all covariates or lags. Instead, the dominant relevance mass is concentrated on a small subset of weather-sensitive and load-related variables and their recent lags. This pattern is physically plausible for regional load forecasting, where short-term demand corrections are often driven by temperature-sensitive consumption, precipitation-related behavioral changes, and the recent load state itself. The visualization therefore \auditbad{supports the interpretability claim}{P28} of the proposed framework: the online controller is guided by a structured relevance surface rather than by an opaque global perturbation.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.96\textwidth]{logs/load_benchmarks/paper_relevance_case_four_datasets.png}
+\caption{Input-layer relevance heatmaps for representative online steps from the four datasets. The strongest relevance mass concentrates on a small subset of weather-sensitive and recent-load covariates, \auditbad{which is consistent with the operational semantics of short-term regional load forecasting}{P28}.}
+\label{fig:relevance_case_multidataset}
+\end{figure*}
+
+\subsubsection{t-SNE Analysis of Representation and Controller States}
+\auditbad{Following the qualitative protocol used in recent online forecasting studies}{P02}, we further visualize the learned representation spaces by t-SNE. For the three public datasets, Fig.~\ref{fig:tsne_phi_drift} compares the invariant representation $\boldsymbol{\phi}_{I}$ with the Stage~III drift representation $\boldsymbol{\phi}_{V}-\boldsymbol{\phi}_{I}$ for train and online samples, Fig.~\ref{fig:tsne_stagewise} visualizes the Stage~I gate space and the Stage~II relevance-drift controller space, and Fig.~\ref{fig:tsne_stage3_experts} shows the Stage~III gain space and the mechanism space induced by the expert branches. Because \textit{Lishui-9} is a nine-task family rather than a single dataset, we visualize its counties separately in Figs.~\ref{fig:lishui_tsne_drift}--\ref{fig:lishui_tsne_stage3}. Table~\ref{tab:tsne_summary} summarizes the public-dataset indicators, while the Lishui family is analyzed visually at county resolution.
+
+Three observations are consistent across the three datasets. First, the Stage~III drift space is more sensitive to train--online mismatch than the invariant space. The centroid gap in $\boldsymbol{\phi}_{V}-\boldsymbol{\phi}_{I}$ is larger than that in $\boldsymbol{\phi}_{I}$ on all datasets, e.g., $0.7536>0.5424$ on \textit{Panama} and $1.3497>0.5288$ on \textit{Tetouan}. This \auditbad{supports the intended role separation}{P29} of the two branches: the invariant encoder preserves the stable forecasting structure, whereas the variant branch amplifies the distribution shift that should be handled online. Second, the Stage~II controller remains highly sparse. The selected ratio is only $7.50\%$ on \textit{Panama}, $0.63\%$ on \textit{Tetouan}, and $8.75\%$ on \textit{Spain Energy--Weather}, which is consistent with the design of Stage~II as a conservative correction mechanism rather than a dense online finetuning routine. Third, the expert mechanism space exhibits clear inter-expert separation, with mean pairwise centroid distances of $17.32$, $13.64$, and $17.58$ on the three datasets, respectively. This indicates that the expert branches are not collapsing to a single shared solution, but are instead learning distinct factor-specific subspaces.
+
+The Stage~I gate-space visualization also provides a \auditbad{direct interpretation}{P29} of the delayed online recalibration. The train--online gate gap is slightly reduced after Stage~I is enabled on \textit{Panama} and \textit{Tetouan}, while it changes only marginally on \textit{Spain Energy--Weather}. The Stage~III scatter further shows that positive online gains are concentrated in localized drift regions rather than uniformly distributed across all online samples. Taken together, these plots \auditbad{indicate}{P29} that Stage~I mainly performs mild gate re-alignment, Stage~II acts only on a small subset of samples with concentrated relevance-drift signatures, and Stage~III exploits the more clearly shifted drift representation for transient correction.
+
+\begin{table*}[t]
+\caption{t-SNE summary on the three main load datasets.\auditnote{P29}{t-SNE 只能作为诊断可视化，不能作为机制因果证明；缺少统计检验。} $\Delta\alpha$ denotes the reduction in the train--online gate-space centroid gap after Stage~I adaptation. ``Selected ratio'' is the proportion of online samples accepted by the Stage~II controller. ``Stage~III +Gain'' is the proportion of sampled online points on which Stage~III improves over the frozen prediction. ``Expert margin'' is the mean pairwise centroid distance among the expert embeddings.}
+\label{tab:tsne_summary}
+\centering
+\scriptsize
+\begin{tabular}{lcccccc}
+\toprule
+Dataset & $\phi_I$ Gap & $(\phi_V-\phi_I)$ Gap & $\Delta\alpha$ & Stage~II Selected Ratio & Stage~III +Gain & Expert Margin \\
+\midrule
+Panama & 0.5424 & 0.7536 & 0.0003 & 7.50\% & 51.88\% & 17.32 \\
+Tetouan & 0.5288 & 1.3497 & 0.0012 & \auditbad{0.63\%}{P29} & \auditbad{16.88\%}{P29} & 13.64 \\
+Spain Energy--Weather & 0.1619 & 0.2699 & \auditbad{-0.0003}{P29} & 8.75\% & \auditbad{46.25\%}{P29} & 17.58 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.94\textwidth]{logs/load_benchmarks/tsne/paper_tsne_phi_drift.png}
+\caption{t-SNE visualization of the invariant representation $\boldsymbol{\phi}_{I}$ and the drift representation $\boldsymbol{\phi}_{V}-\boldsymbol{\phi}_{I}$ on the three main load datasets. \auditbad{The drift space exhibits a larger train--online separation than the invariant space}{P29}, which is consistent with the intended decomposition between stable structure and online-varying dynamics.}
+\label{fig:tsne_phi_drift}
+\end{figure*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.94\textwidth]{logs/load_benchmarks/tsne/paper_tsne_stagewise.png}
+\caption{t-SNE visualization of the Stage~I gate space and the Stage~II relevance-drift space. \auditbad{Stage~I mainly induces a mild gate re-alignment}{P29} of the online samples, while Stage~II selects only a sparse subset of points with concentrated relevance-drift signatures.}
+\label{fig:tsne_stagewise}
+\end{figure*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.94\textwidth]{logs/load_benchmarks/tsne/paper_tsne_stage3_experts.png}
+\caption{t-SNE visualization of the Stage~III correction space and the expert mechanism space. The left column colors online points by the realized gain of Stage~III over the frozen prediction, while the right column shows that the expert embeddings form \auditbad{clearly separated clusters}{P29}.}
+\label{fig:tsne_stage3_experts}
+\end{figure*}
+
+\subsubsection{Quantitative Effect of Shift Score}
+The previous low/medium/high grouping is useful for a first summary, but it is too coarse for judging online robustness. We therefore rewrite the shift-severity experiment as a quantitative shift-score analysis on each dataset. For every dataset, we \auditbad{sample multiple shifted online blocks}{P30} from the post-validation region and report the exact shift score of each block, where the shift score is computed from the train--test covariate discrepancy. Table~\ref{tab:shift_score_quantitative} reports the online MSE of the frozen model, Stage~III, and the full controller on the resulting blocks, without averaging across datasets. Fig.~\ref{fig:shift_score_quantitative} visualizes the same trend as four dataset-specific panels, where the fourth panel expands the Lishui family into county-level points rather than collapsing it into a single mean.
+
+The resulting picture is more informative than a three-level average. On \textit{Panama}, both Stage~III and the full controller remain below the frozen baseline throughout the tested shift-score range, with the full controller slightly better at the smallest sampled shift and Stage~III slightly better at the larger two shift values. On \textit{Tetouan}, the full controller performs best at the smallest shift score, whereas Stage~III is marginally stronger at the largest shift. On \textit{Spain Energy--Weather}, the full controller is \auditbad{strongest at all three sampled shift scores}{P30} and remains consistently below the frozen baseline. Therefore, the main conclusion does not depend on a coarse severity label: the proposed online controller provides \auditbad{robust gains over a range of quantitatively measured train--test shifts}{P30}, while the relative ranking between Stage~III and the full controller is dataset dependent.
+
+\begin{table*}[t]
+\caption{Quantitative shift-score analysis on the three main load datasets.\auditnote{P30}{每个公开数据集只有 3 个采样块且无不确定性；结论需改成 sampled blocks。} Numbers are online MSE on sampled shifted test blocks with exact shift scores. Lower is better.}
+\label{tab:shift_score_quantitative}
+\centering
+\begin{tabular}{lcccc}
+\toprule
+Dataset & \auditbad{Shift Score}{P30} & Frozen & Stage~III & Full \\
+\midrule
+Panama & 0.0884 & 0.1883 & 0.1853 & \textbf{0.1853} \\
+Panama & 0.1126 & 0.1873 & \textbf{0.1833} & 0.1834 \\
+Panama & 0.1324 & 0.1983 & \textbf{0.1951} & 0.1953 \\
+Tetouan & 0.3976 & 0.0953 & 0.0951 & \textbf{0.0935} \\
+Tetouan & 0.4186 & 0.1037 & 0.1031 & \textbf{0.1031} \\
+Tetouan & 0.4878 & 0.0849 & \textbf{0.0836} & 0.0838 \\
+Spain Energy--Weather & 0.4547 & 0.2609 & \auditbad{\textbf{0.2539}}{P30} & \auditbad{0.2558}{P30} \\
+Spain Energy--Weather & 0.4905 & 0.2571 & 0.2542 & \textbf{0.2526} \\
+Spain Energy--Weather & 0.5396 & 0.2411 & \auditbad{\textbf{0.2362}}{P30} & \auditbad{0.2367}{P30} \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.96\textwidth]{logs/load_benchmarks/paper_shift_score_quantitative_by_dataset.png}
+\caption{Online MSE as a function of the exact shift score on the four datasets.\auditnote{P30}{图含 Lishui 县级点，表只列三个公开数据集；需说明数据来源和不确定性。} The first three panels correspond to \textit{Panama}, \textit{Tetouan}, and \textit{Spain Energy--Weather}; the fourth panel plots the nine Lishui counties individually.}
+\label{fig:shift_score_quantitative}
+\end{figure*}
+
+\subsubsection{Additional Evaluation on the Newly Curated Lishui-9 Dataset Family}
+To \auditbad{verify that the framework is not tied to public benchmarks only}{P31}, we additionally evaluate it on the newly curated \textit{Lishui-9} dataset family, which contains nine county-level load forecasting tasks with aligned weather covariates. We first run the same family-level protocol as in the main experiments and average the resulting online error over the nine counties. Table~\ref{tab:lishui_family} shows that the qualitative trend remains \auditbad{consistent}{P31}: Stage~III and Stage~II+III are the strongest family-level variants, while the full Stage~I+II+III controller remains highly competitive. The gain is smaller than that on the three public datasets, which is expected because the county-level tasks are shorter and noisier after alignment, but the direction of the improvement remains stable.
+
+We then perform a dedicated tuned shifted-stream comparison on the same family. Starting from the strongest Lishui-specific Crossformer checkpoint, we compare the frozen model, \textbf{SOLID++}, Ours-Stage~III, and Ours-Full on the shifted online blocks of all nine counties. Table~\ref{tab:lishui_family} shows that the tuned version of the proposed controller narrows the gap to \textbf{SOLID++} \auditbad{substantially}{P31}: the family-level mean online MSE decreases from 0.2265 for the frozen deployment to 0.2254 with Stage~III and to 0.2255 with the full controller, while \textbf{SOLID++} reaches 0.2241. Although the \auditbad{strongest external baseline}{P20} still remains slightly better on this newly curated family, the gap is reduced to approximately \auditbad{$1.3\times 10^{-3}$}{P31}, which is notably smaller than in the initial untuned Lishui runs. This additional result is important for two reasons: it \auditbad{confirms that the framework transfers}{P31} to a newly curated regional load dataset with real alignment noise, and it shows that the main remaining challenge on this family is fine-grained online control rather than the static forecasting backbone itself.
+
+Finally, the county-level views reveal substantial heterogeneity. Figs.~\ref{fig:lishui_shifted_sota_county}--\ref{fig:lishui_component_county} show that some counties benefit most from Stage~III alone, whereas others benefit from Stage~II+III or the full controller. The same phenomenon also appears in the county-level case studies and t-SNE plots in Figs.~\ref{fig:lishui_case_study}--\ref{fig:lishui_tsne_stage3}. Therefore, even on this newly curated dataset family, the core benefits still come from the normalization pipeline and the multi-expert factor mechanism, while the optimal online policy remains county dependent.
+
+\begin{table*}[t]
+\caption{Additional evaluation on the \textit{Lishui-9} dataset family.\auditnote{P31}{需突出 SOLID++ 仍优于本文方法，不能包装成 SOTA 优势。} The left block reports the mean online MSE of the full eight-variant stage benchmark over nine counties. The right block reports the mean online MSE of the tuned shifted-stream comparison. Lower is better.}
+\label{tab:lishui_family}
+\centering
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lcccccccc|lcccc}
+\toprule
+\multicolumn{9}{c|}{Family benchmark} & \multicolumn{5}{c}{Tuned shifted-stream comparison} \\
+\midrule
+Variant & Baseline & Stage~I & Stage~II & Stage~III & Stage~I+II & Stage~I+III & Stage~II+III & Full & Method & Frozen & SOLID++ & Ours-Stage~III & Ours-Full \\
+\midrule
+Mean online MSE & 0.2271 & 0.2269 & 0.2271 & \textbf{0.2254} & 0.2269 & 0.2256 & \textbf{0.2254} & 0.2256 & Mean online MSE & 0.2265 & \auditbad{\textbf{0.2241}}{P31} & \auditbad{0.2254}{P31} & \auditbad{0.2255}{P31} \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.88\textwidth]{logs/lishui_benchmarks/paper_lishui_summary.png}
+\caption{Summary of the newly curated \textit{Lishui-9} dataset family.\auditnote{P31}{图注应说明本文方法未超过 SOLID++，只是缩小差距。} Left: family-level mean online MSE of the stage combinations. Right: tuned shifted-stream comparison against \textbf{SOLID++}.}
+\label{fig:lishui_summary}
+\end{figure*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.96\textwidth]{logs/lishui_benchmarks/paper_shifted_sota_nine_counties_bar.png}
+\caption{County-level online comparison on the \textit{Lishui-9} family under the shifted-stream protocol. Each subfigure shows one county and compares \auditbad{all online baselines}{P20} and the proposed variants using online MSE.}
+\label{fig:lishui_shifted_sota_county}
+\end{figure*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.48\textwidth]{logs/lishui_benchmarks/paper_stage_combo_by_county.png}\hfill
+\includegraphics[width=0.48\textwidth]{logs/lishui_benchmarks/paper_component_ablation_by_county.png}
+\caption{County-level ablation on the \textit{Lishui-9} family.\auditnote{P32}{县级图需补来源 CSV、窗口/县区索引和生成命令。} Left: stage-combination benchmark over the full eight variants. Right: common structural component ablations.}
+\label{fig:lishui_stage_combo_county}
+\label{fig:lishui_component_county}
+\end{figure*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.48\textwidth]{logs/lishui_benchmarks/paper_case_study_nine_counties.png}\hfill
+\includegraphics[width=0.48\textwidth]{logs/lishui_benchmarks/paper_relevance_nine_counties.png}
+\caption{County-level qualitative analysis on the \textit{Lishui-9} family. Left: shifted-segment case studies for the nine counties using the same \auditbad{informative-window selection strategy}{P27} as Fig.~\ref{fig:case_study_multidataset}. Right: representative input-layer relevance maps for the same nine counties.}
+\label{fig:lishui_case_study}
+\end{figure*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.48\textwidth]{logs/lishui_benchmarks/tsne/paper_tsne_lishui_drift.png}\hfill
+\includegraphics[width=0.48\textwidth]{logs/lishui_benchmarks/tsne/paper_tsne_lishui_stage2.png}
+\caption{County-level t-SNE visualization on the \textit{Lishui-9} family.\auditnote{P29}{t-SNE 图不能支撑因果或机制充分证明。} Left: train--online separation in the drift representation. Right: Stage~II controller-space embedding for the nine counties.}
+\label{fig:lishui_tsne_drift}
+\end{figure*}
+
+\begin{figure*}[!b]
+\centering
+\includegraphics[width=0.48\textwidth]{logs/lishui_benchmarks/tsne/paper_tsne_lishui_stage3.png}\hfill
+\includegraphics[width=0.48\textwidth]{logs/lishui_benchmarks/tsne/paper_tsne_lishui_metrics.png}
+\caption{Additional county-level t-SNE views on the \textit{Lishui-9} family.\auditnote{P32}{需补 exact checkpoint、样本选择和 run manifest。} Left: Stage~III gain space across the nine counties. Right: county-level summary metrics extracted from the t-SNE analysis.}
+\label{fig:lishui_tsne_stage3}
+\end{figure*}
+
+\subsubsection{Analysis of Main Results}
+\auditbad{The current results support the two main claims of this paper}{P33}. First, the proposed method is a \emph{framework} rather than a model tied to one predictor. After replacing only the temporal encoder, the same invariant-learning module, factor-VAE module, expert mechanism layer, and online adaptation stages \auditbad{remain effective across a broad family of transformer-based forecasting backbones}{P33}. Second, the online gains are not restricted to a single operating point. In the refined experiments, Stage~III \auditbad{consistently improves the frozen baseline}{P33}, while Stage~I and Stage~II provide additional corrections whose effect depends on the interaction between the backbone representation and the online controller.
+
+At the dataset level, the strongest absolute online results are delivered by different backbones on different benchmarks. For iTransformer, the best results are 0.1802 on \textit{Panama}, 0.0829 on \textit{Tetouan}, and 0.2054 on \textit{Spain Energy--Weather}. For FEDformer, the full combination reaches 0.1761 on \textit{Panama}, while Stage~III remains highly competitive on \textit{Tetouan} and \textit{Spain Energy--Weather}. For Crossformer, the full configuration achieves 0.2631 on \textit{Spain Energy--Weather}, which provides the clearest example in the current study that the three online stages can deliver the strongest joint benefit on a tuned backbone. The newly curated \textit{Lishui-9} family complements these public benchmarks: it confirms that the full controller still improves over the frozen family baseline after realistic load--weather alignment and cleaning, and it also reveals that the remaining gap to the \auditbad{strongest external controller}{P20} is now concentrated in the online control policy rather than in the backbone accuracy itself. Overall, the experiments show that the proposed framework can \auditbad{simultaneously provide strong static forecasting accuracy and measurable online adaptation gains}{P33} on multivariate regional load forecasting benchmarks.
+
+\subsubsection{Backbone Generality Discussion}
+A key design goal of the proposed method is to decouple the online adaptation mechanism from the specific forecasting backbone. The current results support this design choice. Once the temporal encoder is replaced, the remaining components---the invariant branch, the variant branch, the factor-VAE module, the expert mechanism layer, and the three online stages---can be reused without changing the overall \auditbad{training or deployment protocol}{P34}. From this perspective, the role of the backbone is to provide a strong temporal representation, whereas the proposed framework contributes the mechanism decomposition and the online adaptation logic on top of that representation. The ranking in Table~\ref{tab:backbone_screening} therefore has a clear methodological interpretation: the framework is portable across multiple transformer-based predictors, while the final absolute performance still depends on the representational strength of the chosen backbone.
+
+\subsubsection{Online Adaptation Discussion}
+The all-backbone comparison in Table~\ref{tab:all8_online_variants} also clarifies the functional roles of the three online stages. Stage~I adjusts the factor-weight predictor $m_{\eta}$ using delayed labels, and is therefore most useful when the expert mechanisms remain valid but their mixture weights require recalibration. Stage~II performs sparse relevance-guided updates only on unstable experts, so its effect depends more strongly on the quality of the backbone representation and on the reliability of the relevance signal. \auditbad{Stage~III uses the discrepancy}{P29} $\boldsymbol{\phi}_V-\boldsymbol{\phi}_I$ to construct a transient correction at inference time, and is \auditbad{empirically the most stable source of online gain}{P24} in the current benchmark suite. The combined model benefits from these three stages when their respective corrections are complementary rather than redundant, which explains why the strongest joint gains are observed on selected backbone--dataset combinations rather than uniformly across all settings.
+
+\subsubsection{Practical Implications}
+From a practical load-forecasting perspective, the current experiments suggest the following deployment strategy. When a strong backbone such as iTransformer or FEDformer is available, the proposed framework can be used directly to obtain both competitive static forecasting accuracy and additional online gains under \auditbad{delayed feedback}{P03}. When computational or operational constraints are tighter, Stage~III alone already provides a \auditbad{robust and lightweight improvement}{P34} over the frozen baseline. When stronger online flexibility is allowed, enabling all three stages offers the best opportunity to exploit short-term drift, especially on backbones whose mechanism layer and relevance signal are sufficiently stable. This staged interpretation is important for practice because it allows the proposed method to be deployed under different \auditbad{latency, stability, and update-budget constraints}{P34} without changing the overall framework.
+
+\FloatBarrier
+\balance
+\section{Conclusion}
+This paper proposes a plug-and-play online load forecasting framework that combines invariant learning, factor-based mechanism modeling, and a three-stage online controller. The experiments show that the framework is compatible with multiple transformer-based backbones, \auditbad{consistently improves over frozen deployment under shifted online streams}{P33}, and remains competitive against \auditbad{representative online forecasting baselines}{P20}. The empirical evidence further indicates that Stage~III provides the \auditbad{most reliable single-step gain}{P24}, while the joint controller yields the \auditbad{strongest average performance}{P25} when the online update policy is sufficiently constrained.
+
+\section*{\auditbad{Acknowledgments}{P35}}
+\auditbad{This section will be completed in the final manuscript.}{P35}
+
+
+
+\clearpage
+\section*{\textcolor{auditred}{审计问题编号与中文修改意见}}
+\small
+\begin{enumerate}
+\item[\auditid{P01}] 模板元数据未替换：标题、作者、页眉、版权号仍是 IEEE 示例信息。修改：投稿前必须替换为真实题名、作者、单位、基金和版权信息。
+\item[\auditid{P02}] 文献支撑缺失：正文没有有效 \texttt{\textbackslash cite\{\}}，也未发现可用 \texttt{.bib}。修改：所有 related work、baseline、OOD、online learning、t-SNE protocol 等说法都要补真实可核验引用。
+\item[\auditid{P03}] delayed-feedback 叙事过强：代码审计发现反馈延迟以 batch 计数推进，且 Stage II/Full 接受门存在当前标签使用风险。修改：修代码后重跑，或把受影响结果标为 oracle-assisted/diagnostic。
+\item[\auditid{P04}] 摘要和结论存在普遍优越性过度声明。修改：不要写 consistently outperforms representative baselines；改为“在公开 shifted benchmarks 上相对 Frozen 有小幅增益，在 Lishui-9 上与若干在线代理基线竞争但未超过 SOLID++”。
+\item[\auditid{P05}] two-stage 与 three-stage 表述冲突。修改：全稿统一为 three-stage controller，或重构方法小节使 Stage I/II/III 的边界一致。
+\item[\auditid{P06}] RQ1--RQ3 是空白占位。修改：删除空 RQ，或写成真实研究问题并与实验表格一一对应。
+\item[\auditid{P07}] 方法小节标题仍是占位符（The decomposition of ...、C、D、E）。修改：替换为可投稿标题，如 Invariant Representation Learning、Factor-Mechanism Backbone、Stage-wise Online Adaptation、Experimental Setup。
+\item[\auditid{P08}] 记号混乱：N 同时表示变量数和样本数，Section~1 交叉引用不成立，反馈延迟被写成 L steps 也与 horizon/lookback 混淆。修改：新增 notation table，区分变量数 N、窗口样本数 M、lookback L、horizon H、feedback delay D。
+\item[\auditid{P09}] OOD/因果动机缺少可核验引用和清晰假设边界。修改：把 covariate/label/conditional/latent shift 与能源负荷场景的文献来源对应起来。
+\item[\auditid{P10}] SCM 段落重复且未连接到可验证算法。修改：若代码没有显式 DAG/SCM 推断，则把它降级为动机背景，避免声称“principled causal basis”。
+\item[\auditid{P11}] 不变性假设、IRN 方差结论和损失推导缺少证明或实现映射。修改：补推导、实现文件映射和适用条件；否则删弱公式化叙事。
+\item[\auditid{P12}] adversarial environment inference 与 temporal smoothing 需要实现证据；平滑公式含未来索引时还需说明只在离线阶段使用。修改：补训练流程或改成“offline representation pretraining heuristic”。
+\item[\auditid{P13}] Stage II/Full 在线接受逻辑疑似使用当前标签。修改：这是 Tier 1 问题；若不修，所有 Stage II/Full delayed-feedback 结果都不能作为严格在线证据。
+\item[\auditid{P14}] 反馈延迟单位不清：代码表现更接近 batch-level delay，不是逐 timestamp/window delay。修改：实验协议要明确 online unit、batch size、delay D 的物理含义。
+\item[\auditid{P15}] AdaptationGenerator 方法描述与代码不一致：审计未找到对 generator 参数的训练优化证据。修改：训练 generator 并重跑，或改写为 bounded heuristic/random delta controller。
+\item[\auditid{P16}] Stage III 的 post-update prediction error 表述可能暗含当前标签。修改：说明 Stage III 是 inference-only transient correction，还是 label-available 后的更新；两者实验含义不同。
+\item[\auditid{P17}] “No random shuffling” 表述不准确：split 和 online stream 保持时间顺序，但训练 DataLoader 存在 shuffle。修改：改为“splits and online evaluation preserve chronological order; offline mini-batches may be shuffled within the training prefix”。
+\item[\auditid{P18}] shifted-stream 协议写法不完整：表中 55/10/35 容易被理解为完整 35\% suffix 测试，但代码/配置显示是在 later candidate pool 中选 20\% 高 shift block。修改：明确 selected stress-test block，并讨论 selection bias。
+\item[\auditid{P19}] implementation table 混合了多个 config 来源。修改：为每个表格固定唯一 config、command、seed、checkpoint、data path 和代码版本。
+\item[\auditid{P20}] OneNet/SOLID/SOLID++/PROCEED 当前更像内部 proxy/inspired-by 实现，不能直接称 canonical representative baselines 或 external baseline。修改：补 faithful implementation/citation validation，或改名为 proxy baselines。
+\item[\auditid{P21}] shifted SOTA 表不支持 Lishui-9 上超越 SOLID/SOLID++；Ours-Full 的 Lishui MSE 高于 SOLID++。修改：正文必须显式承认 remaining gap。
+\item[\auditid{P22}] 表格基本是 single-seed point estimates，缺少 std/error bar/statistical test。修改：补 multi-seed 或删除 robust、substantial、consistent 等显著性暗示。
+\item[\auditid{P23}] backbone screening 可支持 plug-in scope，但缺少完整 manifest，且“clear margin/consistent gains”语气偏强。修改：保留 tested transformer backbones 范围，补 figure/table provenance。
+\item[\auditid{P24}] all-eight online variants 表与 Stage III 最可靠叙事冲突：多行 Stage II MSE 明显低于 Stage III，且可能混用不同 checkpoint/offline MSE。修改：重建单一受控表，或删除 Stage II/Stage III 排名结论。
+\item[\auditid{P25}] Stage-combination 证据只显示 Full 在部分数据集最好，不支持“joint controller strongest average/universal best”。修改：改成 dataset-dependent ranking；Stage II beneficial inside full controller 需额外消融支持。
+\item[\auditid{P26}] component ablation 削弱 VAE 叙事：MLP Gate, no VAE 在四列均最好；RevIN 与 invariant branch 也有数据集例外。修改：VAE 只能写作一种实现选择，核心贡献应转向多专家、归一化和在线协议。
+\item[\auditid{P27}] qualitative case study 是按最大 frozen-versus-full disagreement 选择的 informative window。修改：只称 illustrative，不得作为代表性提升证据。
+\item[\auditid{P28}] relevance heatmap 只能说明可解释性诊断，不能证明因果机制或物理真实性。修改：删除 causal/operational semantics 过强措辞，补变量含义和选择准则。
+\item[\auditid{P29}] t-SNE 结果是可视化诊断，不是机制因果证明；Stage I \(\Delta\alpha\) 很小甚至为负，Stage III +Gain 也非普遍高。修改：用“consistent with”替代“supports/proves”，并补定量/统计证据。
+\item[\auditid{P30}] shift-score 分析只有每个公开数据集 3 个采样块且无不确定性；Spain 表格还与“Full strongest at all three”文字矛盾。修改：改成 sampled shifted blocks，并修正文表不一致。
+\item[\auditid{P31}] Lishui-9 证据支持 transfer 和 Frozen 改善，但不支持超过 SOLID++。修改：把 Lishui 定位为真实区域数据族和剩余挑战，而非 SOTA 胜利。
+\item[\auditid{P32}] Lishui county figures、case study、t-SNE 图缺 exact command、checkpoint、县区/窗口索引 manifest。修改：补图表生成清单，否则只能作为辅助展示。
+\item[\auditid{P33}] Analysis/Conclusion 把“当前能证明的范围”写得过宽。修改：结论应限制为 tested backbones、sampled shifted streams、competitive online adaptation。
+\item[\auditid{P34}] deployment/latency/update-budget 论述没有实验支撑。修改：补在线更新时间、内存、参数更新数、更新频率；否则删除实践部署成本结论。
+\item[\auditid{P35}] Acknowledgments 仍是占位。修改：投稿前补基金、项目、数据来源或删去占位。
+\item[\auditid{P36}] 全稿缺 per-result evidence manifest。修改：每个 table cell/figure 绑定 CSV row、script、config、seed、checkpoint、data split、git hash；否则顶刊审稿中可复现性风险很高。
+\end{enumerate}
+\normalsize
+
+\end{document}
+
+
+
+
+

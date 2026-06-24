@@ -1,0 +1,9 @@
+autoresearch:
+  max_trials: 8
+  time_budget_hours: 8.0
+  seed: 123
+  proxy_epochs: 3
+  proxy_invariant_epochs: 1
+  keep_top_k: 3
+  mutation_scale: 1.0
+  early_stop_patience: 6

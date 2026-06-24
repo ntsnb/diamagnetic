@@ -1,0 +1,6 @@
+from __future__ import annotations
+
+from train.stage3_v26_artifacts import Stage3V26ArtifactBundle, load_stage3_v26_artifact_bundle
+
+Stage3V28ArtifactBundle = Stage3V26ArtifactBundle
+load_stage3_v28_artifact_bundle = load_stage3_v26_artifact_bundle

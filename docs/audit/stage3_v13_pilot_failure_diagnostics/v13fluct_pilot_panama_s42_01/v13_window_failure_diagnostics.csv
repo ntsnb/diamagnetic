@@ -1,0 +1,6 @@
+feature_mode,validation_window_id,real_mse_gain,real_mae_gain,real_sign_agreement,best_counterfactual_mode,best_counterfactual_mse_gain,real_vs_best_counterfactual_mse_gain_margin,partial_mse_gain_vs_history,partial_mae_gain_vs_history,gate_pass,failure_family,failure_reasons
+fluctuation_plus_history,0,0.108802,0.038670,0.680556,conditional_shuffled,0.083393,0.025409,0.084627,0.054822,True,,
+fluctuation_plus_history,1,0.522514,0.324470,0.763889,zero,0.520657,0.001857,0.301187,0.222338,False,attribution,counterfactual
+fluctuation_plus_history,2,0.070495,0.048327,0.579861,zero,-0.045114,0.115609,0.065704,0.057600,True,,
+fluctuation_plus_history,3,0.011052,-0.008035,0.506944,zero,-0.028928,0.039980,-0.034105,-0.022592,False,real_behavior;incremental,real_mae_gain;real_sign_agreement;partial_mse_gain_vs_history;partial_mae_gain_vs_history
+fluctuation_plus_history,4,0.075579,0.063619,0.680556,conditional_random_matched_norm,0.059097,0.016482,0.120474,0.080260,True,,

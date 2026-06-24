@@ -1,0 +1,126 @@
+seed: 42
+device: auto
+data:
+  source: file
+  path: dataset/weather.csv
+  timestamp_col: date
+  feature_cols: []
+  target_col: OT
+  csv_encoding: latin1
+  missing_sentinels:
+  - -9999
+  impute_method: time_interpolate
+  normalize: true
+  lookback: 24
+  horizon: 12
+  target_dim: 20
+  train_ratio: 0.55
+  val_ratio: 0.1
+  split_mode: chronological
+model:
+  d_model: 128
+  n_experts: 4
+  latent_dim: 64
+  temporal_encoder: transformer
+  nhead: 4
+  num_layers: 2
+  dropout: 0.15
+train:
+  batch_size: 64
+  lr: 0.0005
+  epochs: 4
+  beta_vae: 0.05
+  lambda_disc: 0.05
+  use_lrp: false
+  lrp_method: rrp
+  save_lrp: false
+  lr_schedule:
+    type: warmup_cosine
+    warmup_epochs: 1
+    min_lr: 0.0001
+    step_size: 5
+    gamma: 0.5
+  weight_decay: 0.0001
+invariant:
+  enable: true
+  num_envs: 3
+  smooth_radius: 2
+  repr_dim: 64
+  lambda_erm: 1.0
+  lambda_var: 1.0
+  epochs: 1
+online_run:
+  enable: true
+online:
+  stage1:
+    lr: 0.0002
+    lr_decay: 0.99
+    enable: false
+    update_interval: 4
+    grad_clip_norm: 1.0
+    rollback_on_worse: true
+    max_loss_increase: 0.0
+    optimizer: adagrad
+    schedule: invsqrt
+    bias_clip: 0.3
+    alpha_kl_weight: 0.06
+    bias_l2_weight: 0.001
+    min_trigger_loss: 1.5
+  stability:
+    gamma: 0.55
+    window_size: 10
+  stage2:
+    enable: false
+    topk_omega: 20
+    topk_layer: 4
+    lrp_bottleneck: 16
+    ema_eta: 0.01
+    ema_K: 10
+    lr_scale: 0.0006
+    lr_decay: 0.995
+    update_interval: 6
+    mask_threshold: 2.4
+    min_instability_gap: 0.04
+    min_drift_abs: 0.2
+    gate_by_recon: true
+    min_recon_error: 0.18
+    with_stage1_scale: 0.15
+    eval_with_stage3: true
+    min_improve_abs: 2.0e-05
+    with_stage1_min_improve_abs: 0.00015
+    no_stage1_lr_scale: 0.0006
+    no_stage1_min_drift_abs: 0.18
+    no_stage1_min_recon_error: 0.16
+    no_stage1_min_improve_abs: 1.0e-05
+    no_stage1_update_interval: 4
+    target_modules:
+    - experts
+    target_modules_no_stage1:
+    - experts
+    accept_buffer_size: 6
+    warmup_steps: 30
+    cooldown_steps: 36
+    gain_ema_decay: 0.9
+    min_gain_ema: 0.0
+    reject_cooldown_threshold: -0.0001
+    min_omega_density: 0.03
+    skip_if_stage3_gain_above: 0.0005
+    rollback_on_worse: true
+    max_loss_increase: 0.0
+  stage3:
+    enable: true
+    apply_transient: true
+    lr_scale: 0.0005
+    lr_decay: 0.997
+    max_delta: 0.02
+    min_recon_error: 0.02
+    max_pred_shift: 0.15
+    blend_alpha: 0.3
+    blend_alpha_min: 0.22
+    blend_alpha_max: 0.38
+    with_stage2_blend_scale: 1.0
+    with_stage1_stage2_blend_scale: 1.03
+    gate_by_recon: true
+    target_modules:
+    - experts
+    - output_head
