@@ -1,0 +1,37 @@
+--- upstream/patchtst/PatchTST_supervised/layers/PatchTST_backbone.py
++++ runtime/patchtst/PatchTST_supervised/layers/PatchTST_backbone.py
+@@ -9,8 +9,8 @@
+ import numpy as np
+ 
+ #from collections import OrderedDict
+-from layers.PatchTST_layers import *
+-from layers.RevIN import RevIN
++from third_party.official_forecasters.runtime.patchtst.PatchTST_supervised.layers.PatchTST_layers import *
++from third_party.official_forecasters.runtime.patchtst.PatchTST_supervised.layers.RevIN import RevIN
+ 
+ # Cell
+ class PatchTST_backbone(nn.Module):
+--- upstream/patchtst/PatchTST_supervised/layers/SelfAttention_Family.py
++++ runtime/patchtst/PatchTST_supervised/layers/SelfAttention_Family.py
+@@ -7,7 +7,7 @@
+ import numpy as np
+ import math
+ from math import sqrt
+-from utils.masking import TriangularCausalMask, ProbMask
++from third_party.official_forecasters.runtime.patchtst.PatchTST_supervised.utils.masking import TriangularCausalMask, ProbMask
+ import os
+ 
+ 
+--- upstream/patchtst/PatchTST_supervised/models/PatchTST.py
++++ runtime/patchtst/PatchTST_supervised/models/PatchTST.py
+@@ -8,8 +8,8 @@
+ import torch.nn.functional as F
+ import numpy as np
+ 
+-from layers.PatchTST_backbone import PatchTST_backbone
+-from layers.PatchTST_layers import series_decomp
++from third_party.official_forecasters.runtime.patchtst.PatchTST_supervised.layers.PatchTST_backbone import PatchTST_backbone
++from third_party.official_forecasters.runtime.patchtst.PatchTST_supervised.layers.PatchTST_layers import series_decomp
+ 
+ 
+ class Model(nn.Module):

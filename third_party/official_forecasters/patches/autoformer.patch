@@ -1,0 +1,34 @@
+--- upstream/autoformer/layers/SelfAttention_Family.py
++++ runtime/autoformer/layers/SelfAttention_Family.py
+@@ -3,8 +3,7 @@
+ 
+ import numpy as np
+ from math import sqrt
+-from utils.masking import TriangularCausalMask, ProbMask
+-from reformer_pytorch import LSHSelfAttention
++from third_party.official_forecasters.runtime.autoformer.utils.masking import TriangularCausalMask, ProbMask
+ 
+ 
+ class FullAttention(nn.Module):
+@@ -167,6 +166,7 @@
+                  d_values=None, causal=False, bucket_size=4, n_hashes=4):
+         super().__init__()
+         self.bucket_size = bucket_size
++        from reformer_pytorch import LSHSelfAttention
+         self.attn = LSHSelfAttention(
+             dim=d_model,
+             heads=n_heads,
+--- upstream/autoformer/models/Autoformer.py
++++ runtime/autoformer/models/Autoformer.py
+@@ -1,8 +1,8 @@
+ import torch
+ import torch.nn as nn
+-from layers.Embed import DataEmbedding_wo_pos
+-from layers.AutoCorrelation import AutoCorrelation, AutoCorrelationLayer
+-from layers.Autoformer_EncDec import Encoder, Decoder, EncoderLayer, DecoderLayer, my_Layernorm, series_decomp
++from third_party.official_forecasters.runtime.autoformer.layers.Embed import DataEmbedding_wo_pos
++from third_party.official_forecasters.runtime.autoformer.layers.AutoCorrelation import AutoCorrelation, AutoCorrelationLayer
++from third_party.official_forecasters.runtime.autoformer.layers.Autoformer_EncDec import Encoder, Decoder, EncoderLayer, DecoderLayer, my_Layernorm, series_decomp
+ 
+ 
+ class Model(nn.Module):

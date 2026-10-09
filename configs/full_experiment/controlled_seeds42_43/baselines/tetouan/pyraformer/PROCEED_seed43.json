@@ -1,0 +1,52 @@
+{
+  "seed": 43,
+  "device": "auto",
+  "cpu_threads": 1,
+  "data": {
+    "path": "C:\\Users\\admin\\Desktop\\最近\\1.28\\IEEE-Transactions-LaTeX2e-templates-and-instructions\\dataset\\load_benchmarks\\tetouan.csv",
+    "timestamp_column": "DateTime",
+    "target_columns": [
+      "Zone 1 Power Consumption"
+    ],
+    "lookback": 24,
+    "horizon": 12,
+    "feature_columns": null,
+    "train_fraction": 0.55,
+    "validation_fraction": 0.1,
+    "max_rows": null,
+    "encoding": "utf-8",
+    "expected_interval_seconds": 600,
+    "target_input_columns": null,
+    "target_mask_columns": null,
+    "protocol": "chronological",
+    "online_test_fraction": 0.2,
+    "shift_pool_fraction": 0.35,
+    "extra_delay": 2
+  },
+  "method": "PROCEED",
+  "model": {
+    "hidden": 64,
+    "heads": 8,
+    "depth": 2,
+    "dropout": 0.1,
+    "moving_avg": 25,
+    "patch_len": 16,
+    "patch_stride": 8,
+    "crossformer_seg_len": 6,
+    "fedformer_modes": 12,
+    "model_name": "pyraformer"
+  },
+  "onenet_mode": "onlinetsf_cross_backbone",
+  "training": {
+    "epochs": 5,
+    "adapter_epochs": 5,
+    "batch_size": 32,
+    "learning_rate": 0.001,
+    "adapter_learning_rate": 0.001,
+    "max_grad_norm": 5.0
+  },
+  "online": {
+    "extra_delay": 2,
+    "period": 144.0
+  }
+}

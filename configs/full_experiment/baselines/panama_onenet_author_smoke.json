@@ -1,0 +1,24 @@
+{
+  "seed": 2026,
+  "device": "cpu",
+  "cpu_threads": 1,
+  "data": {
+    "path": "C:/Users/admin/Desktop/最近/1.28/IEEE-Transactions-LaTeX2e-templates-and-instructions/dataset/load_benchmarks/panama.csv",
+    "timestamp_column": "datetime",
+    "target_columns": ["nat_demand"],
+    "feature_columns": ["nat_demand", "T2M_toc", "QV2M_toc", "TQL_toc", "W2M_toc"],
+    "lookback": 24,
+    "horizon": 8,
+    "train_fraction": 0.6,
+    "validation_fraction": 0.2,
+    "max_rows": 320,
+    "protocol": "chronological"
+  },
+  "model": {"model_name": "fsnet_time"},
+  "method": "OneNet",
+  "onenet_mode": "author_architecture",
+  "fsnet": {"hidden_dims": 64, "output_dims": 320, "depth": 10},
+  "training": {"epochs": 1, "adapter_epochs": 1, "batch_size": 4, "max_train_windows": 16, "validation_windows": 8, "patience": 1},
+  "online": {"learning_rate": 0.0001, "extra_delay": 2},
+  "test_windows": 12
+}

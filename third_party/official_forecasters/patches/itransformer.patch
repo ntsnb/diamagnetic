@@ -1,0 +1,44 @@
+--- upstream/itransformer/layers/SelfAttention_Family.py
++++ runtime/itransformer/layers/SelfAttention_Family.py
+@@ -2,8 +2,7 @@
+ import torch.nn as nn
+ import numpy as np
+ from math import sqrt
+-from utils.masking import TriangularCausalMask, ProbMask
+-from reformer_pytorch import LSHSelfAttention
++from third_party.official_forecasters.runtime.itransformer.utils.masking import TriangularCausalMask, ProbMask
+ from einops import rearrange
+ 
+ 
+@@ -305,6 +304,7 @@
+                  d_values=None, causal=False, bucket_size=4, n_hashes=4):
+         super().__init__()
+         self.bucket_size = bucket_size
++        from reformer_pytorch import LSHSelfAttention
+         self.attn = LSHSelfAttention(
+             dim=d_model,
+             heads=n_heads,
+--- upstream/itransformer/model/iTransformer.py
++++ runtime/itransformer/model/iTransformer.py
+@@ -1,9 +1,9 @@
+ import torch
+ import torch.nn as nn
+ import torch.nn.functional as F
+-from layers.Transformer_EncDec import Encoder, EncoderLayer
+-from layers.SelfAttention_Family import FullAttention, AttentionLayer
+-from layers.Embed import DataEmbedding_inverted
++from third_party.official_forecasters.runtime.itransformer.layers.Transformer_EncDec import Encoder, EncoderLayer
++from third_party.official_forecasters.runtime.itransformer.layers.SelfAttention_Family import FullAttention, AttentionLayer
++from third_party.official_forecasters.runtime.itransformer.layers.Embed import DataEmbedding_inverted
+ import numpy as np
+ 
+ 
+@@ -45,7 +45,7 @@
+             means = x_enc.mean(1, keepdim=True).detach()
+             x_enc = x_enc - means
+             stdev = torch.sqrt(torch.var(x_enc, dim=1, keepdim=True, unbiased=False) + 1e-5)
+-            x_enc /= stdev
++            x_enc = x_enc / stdev
+ 
+         _, _, N = x_enc.shape # B L N
+         # B: batch_size;    E: d_model; 

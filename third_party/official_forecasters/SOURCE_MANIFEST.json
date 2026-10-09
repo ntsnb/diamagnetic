@@ -1,0 +1,141 @@
+{
+  "autoformer": {
+    "archive_sha256": "2d558f3c3db6fa1567371d16275f8544ccbe5c9e017d0711c4203564e76ddaa4",
+    "commit": "51c7d416ae120b805fd5beef2f4ccf7de496a6ff",
+    "files": {
+      "LICENSE": "8a6caa178ea3f33ebff5d7bb5558628cf5b423305dc30d3630f86564c7db94a2",
+      "README.md": "885424e599e692e4ac13c5b8b94913925dc770f09e2387832bcd4865b473c217",
+      "layers/AutoCorrelation.py": "dddbc3cc533f9640bbee0e624a49532efe4ee99735101f51a4b03e105772af01",
+      "layers/Autoformer_EncDec.py": "512a01144804da2a64ade5c1e687b624a0257238da18ea02af0720479ea216e2",
+      "layers/Embed.py": "4133ae41fc64f5531cd001d2e883bd3ab89283ddea9ffdf5659960cc8bd37918",
+      "layers/SelfAttention_Family.py": "098b951273582710b65f4559b1f51b8729a557f5cfe2f2623d1e4a67179361c2",
+      "layers/Transformer_EncDec.py": "1f16eabae5e8de6964bc7c3ce76215f1daafcdb52daeb1987d7d38abf1cbe6f6",
+      "layers/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "models/Autoformer.py": "f18e9e82844ed8c4dc26e00c3c2f0b7c278ac8ea8427c4fab7331939bf69829d",
+      "requirements.txt": "2f35f5f76f11326874f7d58994ca092e74df6b53c212b722103690ef6f972cd8",
+      "utils/masking.py": "02f453e52cfaec65e34132923add80e7132f188706680fa86d7bd884976e09ef"
+    },
+    "repository": "https://github.com/thuml/Autoformer"
+  },
+  "crossformer": {
+    "archive_sha256": "50e0fcb9e13c0338331ad49848db55ba8a5b58cc234e520e759fbd33adc69ef2",
+    "commit": "c10c8eadb153d1dd9798250967747ca3ebb81383",
+    "files": {
+      "LICENSE": "96c19fcecfadd5fc02b73d95dec507288f8d5b1724f1c8e6229fb21a987d8352",
+      "cross_models/attn.py": "39256d8f37e1acb3e52d645887316af89136d5910d4224c697c0cc38896f429b",
+      "cross_models/cross_decoder.py": "3c1d476df29d7a520d2ed3e8a06ec8e7186e96edda0ba74d6b943c8253fbdd40",
+      "cross_models/cross_embed.py": "6b78484268eb67f8fcf135537c3d61982c903992cc3f8f44fb47a46ec47c83fa",
+      "cross_models/cross_encoder.py": "be2fbf13317c27186563b68ff03326719a5a5db900b896889f46d570605587c2",
+      "cross_models/cross_former.py": "deee243b2ae877084320dce49e691c8860c56f0cbda269c6f0cdb50848f6c708",
+      "readme.md": "f3bf718af99d50ae8d760ff2454a37d85e3f66825adf1648a9ac4919e9135ff5",
+      "requirements.txt": "4e9f8d3be99c1cebe1374dbedd71e98202b8f659bfea466c39c26b50847887c1"
+    },
+    "repository": "https://github.com/Thinklab-SJTU/Crossformer"
+  },
+  "fedformer": {
+    "archive_sha256": "fd0444bc934c429c835bbe85b1b59620de89f76bd91387b75fae6a7ce57ebd59",
+    "commit": "39f3bffd203518548c0bf3f16a8c1ae112648dfe",
+    "files": {
+      "LICENSE": "74323c2d2119ab99a00c4d0bda4f72c4ff3e3aca49af17eaf62aec593f2af1b2",
+      "README.md": "f34d79b609324b017978c67ae8655ad5d593ccb2b74df74b9ca8a6c67cd1e15d",
+      "layers/AutoCorrelation.py": "51dc38a0ac048dded52e49dc01d205bb144e70792d54b40191449bf81384681d",
+      "layers/Autoformer_EncDec.py": "21571672f4c68c455499f71d7eff2ef3449b4701628ae03e9cc3094cd1f2d333",
+      "layers/Embed.py": "64fb6ea1f50cf0201ca2160aa46d68664a1ade989a6f11ed1aea29b147552843",
+      "layers/FourierCorrelation.py": "049283552e58413685a90867a3d67428434248238b0e1fc41f46380b68d43102",
+      "layers/MultiWaveletCorrelation.py": "cb94ce2f577bf8b014fdcc3522a87065ec45afa2a883ba7d80c16b7a8a2dd29f",
+      "layers/SelfAttention_Family.py": "0f6914264a4289b1260beb76382e8a75973b542ff6a27ba8482ac7c07678fc80",
+      "layers/Transformer_EncDec.py": "b543702cf5764d678be8d8a68d878853af022e7b55ce812d941f81b8bc6a68b6",
+      "layers/utils.py": "fd236b9f27f6b3a81934c1679d0f1b3fae32aa304e63e6e4fcf2a8310f2386ca",
+      "models/FEDformer.py": "4afda2044c463de6fa24b51b9e3b93a2aaf741186933789e34b11ba804dcd0bf",
+      "utils/masking.py": "e6589197f4b06c2e2e3574f8d1060123a8b113284ccd75d6bbd72d5591a727b8"
+    },
+    "repository": "https://github.com/DAMO-DI-ML/ICML2022-FEDformer"
+  },
+  "informer": {
+    "archive_sha256": "0d6d03d89e8ebc549dd488163eb2b4365a7df789bfc531eec4240655febaf0e2",
+    "commit": "29f2a739226a509202a092b464163da81fa74960",
+    "files": {
+      "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+      "README.md": "452be04b3e97f47e97937893aac1047957f237b7baf6df8e27df2c89cb248c4c",
+      "models/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "models/attn.py": "d9a294d829371759f1984f9f8fee12408774dda1a3de662313151d86e8513528",
+      "models/decoder.py": "ec2ebb81ba8d5400c06cb7db5ae2d93bb95dd04b2afbc33b5cefa284afb9a9df",
+      "models/embed.py": "d7f4f06370c640b56acab9df4092988f7711afb33cc64e868dc080286a0c4b9d",
+      "models/encoder.py": "bfd72a16e8bf7b2b36bcab47d198b885863e4b2ebfa5707f619c31078bc87737",
+      "models/model.py": "bc8e062fbbb4f4ae970ca0d02d2bf43b2e92c3251c3627d887c01d35cbc6891a",
+      "requirements.txt": "8bbb034543cfd4e5ad9d4befe3c515d6746b1ede61d4a3147d55e74452241b4d",
+      "utils/masking.py": "33862345a8e9297b4214614e16c86829279953506319da4ffe33a476ef047c28"
+    },
+    "repository": "https://github.com/zhouhaoyi/Informer2020"
+  },
+  "itransformer": {
+    "archive_sha256": "9ce8898fbc1a8ab88f7d9c1c7650caa223b3ad2a362e7441cc636049551ab6e1",
+    "commit": "c2426e68ca13f74aaec08045c5c724d8ad328124",
+    "files": {
+      "LICENSE": "29d2a4c09fa577780522219dc248466977f77cd420354c5e9a0e86550be2b849",
+      "README.md": "7a9ce06030a87852774537b08196785f88391506687476725e89bffd59d5e5a8",
+      "layers/Embed.py": "2de7e5049a696d320a23a8bdb6e08e823cf7fa3f246a0a49555fcd729c5c8398",
+      "layers/SelfAttention_Family.py": "38ac67428d528b8e145e4944ca059b40629a8446c891142602d5aaadc38dfd9e",
+      "layers/Transformer_EncDec.py": "985c31f4ae187b08afaa9663dc960a40544b2ec33ab55389ceab3930edc1ce02",
+      "layers/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "model/iTransformer.py": "6f34777a5a12c253a293f79e7e1fd5b6f79ac100b443951e051e269e7e2542db",
+      "requirements.txt": "c537d7154b0e27442d695788439482a1f4768722762e8504e980374a8b7929c1",
+      "utils/masking.py": "02f453e52cfaec65e34132923add80e7132f188706680fa86d7bd884976e09ef"
+    },
+    "repository": "https://github.com/thuml/iTransformer"
+  },
+  "patchtst": {
+    "archive_sha256": "1107abb451cd2a244973409421a6856874b4d8c1b6a13d38c5ccf9349d5dcebf",
+    "commit": "204c21efe0b39603ad6e2ca640ef5896646ab1a9",
+    "files": {
+      "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+      "PatchTST_supervised/layers/AutoCorrelation.py": "13c2be7df57bf7b83b165ab57f4349627b66d7ceb2cb832287fced75230bf35d",
+      "PatchTST_supervised/layers/Autoformer_EncDec.py": "512a01144804da2a64ade5c1e687b624a0257238da18ea02af0720479ea216e2",
+      "PatchTST_supervised/layers/Embed.py": "3743a14dd505f9caafb512727b10bec2d4a84d84cacc6f8936f33a5071e2a0a2",
+      "PatchTST_supervised/layers/PatchTST_backbone.py": "df67173153787c2356bdfb6491159cd754332ef7382986efe879e1fbea8ebf26",
+      "PatchTST_supervised/layers/PatchTST_layers.py": "21c06c70a90c60ee2a269b5c600c702834dea22cdfd72915e6b0f8b4a28db3f6",
+      "PatchTST_supervised/layers/RevIN.py": "e64c0ccded9228b347134e7368420d3fb10f70c75145b5ff2d8bdd8c3af59df6",
+      "PatchTST_supervised/layers/SelfAttention_Family.py": "0f6914264a4289b1260beb76382e8a75973b542ff6a27ba8482ac7c07678fc80",
+      "PatchTST_supervised/layers/Transformer_EncDec.py": "b543702cf5764d678be8d8a68d878853af022e7b55ce812d941f81b8bc6a68b6",
+      "PatchTST_supervised/models/PatchTST.py": "49d8bb865e1226d6338842f4b33c4bc6992cefb048dc2a4a5a8c410ca708586b",
+      "README.md": "7b45e8c686111038986b3b6e35b7e29338dad16eb1a9586a321be8a19d16ea7e"
+    },
+    "repository": "https://github.com/yuqinie98/PatchTST"
+  },
+  "pyraformer": {
+    "archive_sha256": "0a7564eaaab0b43cb39292571960bb71b109874ae1dbd01048c056ed1a50d86d",
+    "commit": "84af4dbd93b7b96975b5034f0dde412005260123",
+    "files": {
+      "LICENSE": "63c71c64fbbc0fc885dd7240428a77536eaccb09fac915df161efa2649a4700a",
+      "README.md": "f6b1d7399ec44cf9b4d09080b8a80537767ba33fcc9e7f82c209d1817e3c7df7",
+      "long_range_main.py": "1862c466b278b2325ebae372cefb1cea047d2377ae68d0904f5b669aa784d7f8",
+      "pyraformer/Layers.py": "f5bcc0a25059e27dfd7c4fd25e1dee9e059cbac03e463c0d47e9c288b13af743",
+      "pyraformer/Modules.py": "567dfd14830903dea4eafeb70ee7f532407c57814291a1c5be937a5007bf0818",
+      "pyraformer/PAM_TVM.py": "14ab86816be5a397dc3028516ed2f7d967a2e8dc8e8abef6a0226b3ff2ad6dac",
+      "pyraformer/Pyraformer_LR.py": "f720bc98718a4b58d10fa9f3d8eda6225fdd470bf095af255db56be855a2e361",
+      "pyraformer/Pyraformer_SS.py": "17e75fb00bdf962115069e71f5df30cd65f7affa1e7822e8c19e373c27add6cb",
+      "pyraformer/SubLayers.py": "bf8d5692b43ce44d775afb7d5db51ab37f1f34861aaf169a77a45dde8c9e0623",
+      "pyraformer/embed.py": "a28cee75bda7068d68127a9414b63bfc0e4f5ccb3c9b8a95a5551ff61644382e",
+      "pyraformer/graph_attention.py": "c7c4ddebad7c5c4d92d41218712ced1ffc0cd06b4aa39bc36aec045314a6c15c",
+      "pyraformer/hierarchical_mm_tvm.py": "d5ede2102fb1612de59071ecbec8f184045e55bba9178ff441ebb1d88350e37b",
+      "requirements.txt": "c7f650ec026776017468172979e9c0676d123ef4d9513a6f6fe692c5f60c8f86"
+    },
+    "repository": "https://github.com/ant-research/Pyraformer"
+  },
+  "transformer": {
+    "archive_sha256": "8ad00c38d00baa6b4a17df2a688a96c945a0c005b6caceca0e932e6f5ac6edaa",
+    "commit": "4e938a1767106324dd753b2a44832bf870a0252e",
+    "files": {
+      "LICENSE": "8a6caa178ea3f33ebff5d7bb5558628cf5b423305dc30d3630f86564c7db94a2",
+      "README.md": "2d03e4917e41917105ed647c5ea7537e1394f88b0af190e05715457b55dc5be6",
+      "README_zh.md": "48edb5fda3be94a8623e3c6df428246bc1559e0df4c299a832e6979122de8635",
+      "layers/Embed.py": "17e7c3577324c41a0da427a199c955b782fde905aabb1f7cbc3c4e15ebd4ae35",
+      "layers/SelfAttention_Family.py": "6f6592aed0753e342fc04c01db70528c2eb191eeb067cd5fd4c8d348fddcb794",
+      "layers/Transformer_EncDec.py": "7b26f4459735c341f161011f6bc24b9deb8ecc3bcf61e4f15431998272a44fb4",
+      "models/Transformer.py": "46ded6c516fd03951bce0a82c3f4245f0247efd01fb5bde775145cfbb6d8435d",
+      "requirements.txt": "1467f08eca3f4b749addf69042955eeb547dfb13a8a569e7e881b545c696df9f",
+      "utils/masking.py": "02f453e52cfaec65e34132923add80e7132f188706680fa86d7bd884976e09ef"
+    },
+    "repository": "https://github.com/thuml/Time-Series-Library"
+  }
+}

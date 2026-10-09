@@ -1,0 +1,77 @@
+{
+  "run_id": "20261009_controlled_comparisons_and_diagnostics_v1",
+  "completed_at": "2026-10-09T09:06:46.366065+00:00",
+  "branch": "codex/paper-complete-20261007",
+  "source_sha256": {
+    "paper_impl/adaptation.py": "9967b81e346a19c29acfac3da7edce5bba4fe2eaa87517be116df02f12c154cb",
+    "paper_impl/backbones.py": "576ea8cbb0db444c8521c17bef06ebc2453d5bc873f984722a50e1e6cbc7d1d3",
+    "paper_impl/baseline_run.py": "d3cf112f94eaa7bc4f2af052d28a5cf9132a4bd765765b10ac9faf600f2ddcf2",
+    "paper_impl/data.py": "267d3d47adce8715079a277c17b1baf56f5702b8c5752f8b1eee33c660351458",
+    "paper_impl/diagnostics.py": "9e61a79cfa48104afb56c218e4da7a7ff13fe8b2576772d07be30b0b754c10ea",
+    "paper_impl/discrepancy.py": "14b2191eb01270325a3c4f9818c2456f2f6c69952857005a6a5144e36d5cba51",
+    "paper_impl/evaluation.py": "81697905d91d772f6dc3d81c704e17ec11ea3095fd7450946b559bac7af2e3e6",
+    "paper_impl/experiment.py": "07c06b3e0c18218564761f014bc2bf016871c0a30a34eec6bf1df4a35493b8a3",
+    "paper_impl/foil.py": "35837c921266f6ce241133b6b84da49a65e8f5b781f5cb9dc7e331fdd6ee4c9e",
+    "paper_impl/lrp.py": "c42c827c18f100cc8c46d9641a4bd9a70aa9f44be50dfa7f101f98a083f53cf1",
+    "paper_impl/model.py": "9fd19bf0b9da7142ab1f863a4df14c9f36bd6079965d32e4fb6f3db714761a79",
+    "paper_impl/official_backbones.py": "baeaa1a7c52049ef45fae895b295d6228eb04a0c5a06ed98abfcb6ea78e7a542",
+    "paper_impl/official_fsnet.py": "c3ca92e093c2a8a1801dc5d18d031745ab42a7ec828a6e903502ba84779fdadd",
+    "paper_impl/official_lrp.py": "6b850d4b7c9653db7ff41dbc47cd73d7488755a47e466d138dbc2aed3ecd6e61",
+    "paper_impl/online_baselines.py": "8a3ffaae8a7a2c625f4c14fe1d3ae0c6ac2dbbfad66a05c1f9849f7bb79a01b3",
+    "paper_impl/replay.py": "3d90dde327b4cb8702894d5f2373248c0aa384cffb511bc676cf23d7d2fe70c3",
+    "paper_impl/resource_report.py": "63b7c605caa6b09b34a8b1a663262985a64e6b38d7178edb76c3f70301fafdad",
+    "paper_impl/run.py": "d008eb83b8c1c2b832255b8c42de5acfa65277b09fb6da2c5eac36aab4965efa",
+    "paper_impl/stream.py": "7f1e7640781a2154164d2ac4fae4b2ff616f458edd5dc0ce3a5748ffd25991ee",
+    "paper_impl/stream_protocols.py": "4b6b1f241ff413a6d3b81d282a5f80775701de9bac77c841ba49f9be379c3477",
+    "paper_impl/training.py": "e294c8ff8208e11ada6746690524e1601519526e42c490857efcba5f1b7f32bf",
+    "paper_impl/__init__.py": "069bbfc72e322bf1c81eb5db73ed2c9397f2d42083b093a2fff47aca86f49bce"
+  },
+  "changed_core_files": [
+    "paper_impl/adaptation.py",
+    "paper_impl/baseline_run.py",
+    "paper_impl/diagnostics.py",
+    "paper_impl/evaluation.py",
+    "paper_impl/experiment.py",
+    "paper_impl/online_baselines.py",
+    "paper_impl/run.py"
+  ],
+  "other_changed_file_sha256": {
+    "tools/build_full_experiment_matrix.py": "a5269102780109e88541fa8ec2b4faa5292a23fab41a01994005a46c1efb7be1",
+    "tests/paper_impl/test_matched_selection.py": "772ebce8595141f14dee4ba1b5cffaa061a8ef59f37400356eca3d52658ef827",
+    "tests/paper_impl/test_frozen_baseline.py": "ee250d707b0db93936af192c13350fa676915f8c18e429078aa633a0c71d4294",
+    "tests/paper_impl/test_expert_diagnostics.py": "95deeba9e103b156eec99388a239a107d47952107b34942b87d5dc09daaa9d5f",
+    "tests/paper_impl/test_controlled_experiment_run.py": "b70ebc030caa99c04df3567f4c1543807171e710a1ea44993feafdd8b4e13d74",
+    "tests/paper_impl/test_experiment_seeds.py": "2e7f23e49e13e4b5904436cb192a89fa1c73d68519b3aeff08f8f6c4fa32c353",
+    "tests/paper_impl/test_structural_ablations.py": "2d3427f0d49357b30d8ea7430f761465425a8a31bfdd4a55b6e75de465ea1d03",
+    "README_PAPER_IMPLEMENTATION.md": "377c9474845849d94931e249c9ecbe2007db08231995f93ffb1c7906085c1166",
+    "docs/audit/controlled_comparisons_20261009/IMPLEMENTATION_RECORD.md": "c3eb9531b1453001e79811ddf0af35cd7a3011c96c3f0f057fe66f82d4e67b01"
+  },
+  "preserved_matrices": {
+    "structural": {
+      "matrix_sha256": "36ca5d4c8a46924f64c308c75d92ba3393388fb0b5f9b96c1ddb9f1fe780fd60",
+      "verified_configs": 1794
+    },
+    "structural_seeds42_43": {
+      "matrix_sha256": "09f2b0384eec89bdd2ee753ee7f391aefb440d00992404284ff060930877b0de",
+      "verified_configs": 4836
+    }
+  },
+  "matrix_sha256": "2785bee9573eada52fa5d80a90b74a0cdcb812c48380abf2af0a9721046c642d",
+  "training_jobs": 5044,
+  "evaluation_tasks": 7618,
+  "pytest": {
+    "passed": 717,
+    "skipped": 2,
+    "warnings": 2,
+    "seconds": 128.63,
+    "log": "pytest_full.log"
+  },
+  "strengthened_live_feedback_tests": {
+    "passed": 15,
+    "seconds": 8.29,
+    "log": "pytest_feedback.log"
+  },
+  "formal_training_started": false,
+  "manuscript_changed": false,
+  "long_task_recovery_changed": false
+}

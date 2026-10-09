@@ -1,0 +1,114 @@
+{
+  "seed": 43,
+  "device": "auto",
+  "cpu_threads": 1,
+  "data": {
+    "timestamp_column": "timestamp",
+    "target_columns": [
+      "load"
+    ],
+    "feature_columns": [
+      "load_input",
+      "load_input_observed",
+      "hour_sin",
+      "hour_cos",
+      "dow_sin",
+      "dow_cos",
+      "month_sin",
+      "month_cos"
+    ],
+    "target_input_columns": {
+      "load": "load_input"
+    },
+    "target_mask_columns": [
+      "load_observed"
+    ],
+    "expected_interval_seconds": 3600,
+    "path": "C:/Users/admin/Documents/杂活/LoadForecasting_Paper_Implementation_20261007/data/lishui_online/v2/hourly/lishui_景宁.csv",
+    "lookback": 24,
+    "horizon": 12,
+    "train_fraction": 0.55,
+    "validation_fraction": 0.1,
+    "max_rows": null,
+    "protocol": "chronological",
+    "extra_delay": 2
+  },
+  "model": {
+    "expert_backbone": "fedformer",
+    "encoder": "temporal_transformer",
+    "n_experts": 3,
+    "hidden": 64,
+    "heads": 8,
+    "depth": 2,
+    "latent_block": 8,
+    "use_vae": true,
+    "use_revin": false,
+    "official_sampling_seed": 43,
+    "official_options": {
+      "dropout": 0.1,
+      "moving_avg": 25,
+      "patch_len": 16,
+      "patch_stride": 8,
+      "crossformer_seg_len": 6,
+      "fedformer_modes": 12
+    }
+  },
+  "foil": {
+    "mode": "foil",
+    "contrast": "difference",
+    "n_environments": 3,
+    "rounds": 2,
+    "mil_epochs": 2,
+    "mei_epochs": 1,
+    "batch_size": 128,
+    "seed": 43
+  },
+  "training": {
+    "epochs": 5,
+    "batch_size": 32,
+    "learning_rate": 0.001,
+    "specialization_weight": 0.05,
+    "seed": 43
+  },
+  "generator": {
+    "mode": "centered_bounded",
+    "hidden_dim": 16,
+    "epsilon": 0.1
+  },
+  "online": {
+    "stage_i": true,
+    "stage_ii": true,
+    "stage_iii": true,
+    "reference_windows": 4,
+    "reference_interval": 16,
+    "history_capacity": 64,
+    "extra_delay": 2,
+    "channel_budget": 1,
+    "selection_seed": 43
+  },
+  "expert_diagnostics": {
+    "enabled": true,
+    "distance_interval": 1
+  },
+  "replay": {
+    "episodes": 2,
+    "max_windows": null
+  },
+  "test_windows": null,
+  "variants": [
+    "stages_000",
+    "stages_001",
+    "stages_010",
+    "stages_011",
+    "stages_100",
+    "stages_101",
+    "stages_110",
+    "stages_111"
+  ],
+  "selection_comparisons": [
+    "matched_lrp",
+    "matched_gradient",
+    "matched_random",
+    "matched_dense"
+  ]
+}

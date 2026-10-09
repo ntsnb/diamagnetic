@@ -1,0 +1,30 @@
+--- upstream/informer/models/attn.py
++++ runtime/informer/models/attn.py
+@@ -5,7 +5,7 @@
+ import numpy as np
+ 
+ from math import sqrt
+-from utils.masking import TriangularCausalMask, ProbMask
++from third_party.official_forecasters.runtime.informer.utils.masking import TriangularCausalMask, ProbMask
+ 
+ class FullAttention(nn.Module):
+     def __init__(self, mask_flag=True, factor=5, scale=None, attention_dropout=0.1, output_attention=False):
+--- upstream/informer/models/model.py
++++ runtime/informer/models/model.py
+@@ -2,11 +2,11 @@
+ import torch.nn as nn
+ import torch.nn.functional as F
+ 
+-from utils.masking import TriangularCausalMask, ProbMask
+-from models.encoder import Encoder, EncoderLayer, ConvLayer, EncoderStack
+-from models.decoder import Decoder, DecoderLayer
+-from models.attn import FullAttention, ProbAttention, AttentionLayer
+-from models.embed import DataEmbedding
++from third_party.official_forecasters.runtime.informer.utils.masking import TriangularCausalMask, ProbMask
++from third_party.official_forecasters.runtime.informer.models.encoder import Encoder, EncoderLayer, ConvLayer, EncoderStack
++from third_party.official_forecasters.runtime.informer.models.decoder import Decoder, DecoderLayer
++from third_party.official_forecasters.runtime.informer.models.attn import FullAttention, ProbAttention, AttentionLayer
++from third_party.official_forecasters.runtime.informer.models.embed import DataEmbedding
+ 
+ class Informer(nn.Module):
+     def __init__(self, enc_in, dec_in, c_out, seq_len, label_len, out_len, 

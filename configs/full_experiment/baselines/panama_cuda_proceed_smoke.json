@@ -1,0 +1,22 @@
+{
+  "seed": 2026,
+  "device": "cuda",
+  "cpu_threads": 1,
+  "data": {
+    "path": "C:/Users/admin/Desktop/最近/1.28/IEEE-Transactions-LaTeX2e-templates-and-instructions/dataset/load_benchmarks/panama.csv",
+    "timestamp_column": "datetime",
+    "target_columns": ["nat_demand"],
+    "feature_columns": ["nat_demand", "T2M_toc", "QV2M_toc", "TQL_toc", "W2M_toc"],
+    "lookback": 24,
+    "horizon": 8,
+    "train_fraction": 0.6,
+    "validation_fraction": 0.2,
+    "max_rows": 320,
+    "protocol": "chronological"
+  },
+  "model": {"model_name": "itransformer", "hidden": 16, "heads": 8, "depth": 1, "dropout": 0.0},
+  "method": "PROCEED",
+  "training": {"epochs": 1, "adapter_epochs": 2, "batch_size": 4, "max_train_windows": 16, "validation_windows": 8, "patience": 2},
+  "online": {"learning_rate": 0.0001, "extra_delay": 2, "memory_size": 24, "selected_data_num": 3, "period": 24, "lambda_period": 0.1, "concept_dim": 8, "bottleneck_dim": 4},
+  "test_windows": 12
+}

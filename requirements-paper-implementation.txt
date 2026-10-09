@@ -1,0 +1,6 @@
+# 已验证环境；CUDA版torch根据本机驱动选择相应官方wheel。
+torch==2.7.1
+numpy==2.4.6
+pandas==2.3.3
+pytest==9.0.2
+-r third_party/official_forecasters/requirements-runtime.txt

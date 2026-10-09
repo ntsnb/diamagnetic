@@ -1,0 +1,65 @@
+{
+  "seed": 43,
+  "device": "auto",
+  "cpu_threads": 1,
+  "data": {
+    "path": "C:\\Users\\admin\\Documents\\杂活\\LoadForecasting_Paper_Implementation_20261007\\data\\lishui_online\\v2\\hourly\\lishui_city.csv",
+    "timestamp_column": "timestamp",
+    "target_columns": [
+      "load"
+    ],
+    "lookback": 24,
+    "horizon": 12,
+    "feature_columns": [
+      "load_input",
+      "load_input_observed",
+      "hour_sin",
+      "hour_cos",
+      "dow_sin",
+      "dow_cos",
+      "month_sin",
+      "month_cos"
+    ],
+    "train_fraction": 0.55,
+    "validation_fraction": 0.1,
+    "max_rows": null,
+    "encoding": "utf-8",
+    "expected_interval_seconds": 3600,
+    "target_input_columns": {
+      "load": "load_input"
+    },
+    "target_mask_columns": [
+      "load_observed"
+    ],
+    "protocol": "chronological",
+    "online_test_fraction": 0.2,
+    "shift_pool_fraction": 0.35,
+    "extra_delay": 2
+  },
+  "method": "SOLID++",
+  "model": {
+    "hidden": 64,
+    "heads": 8,
+    "depth": 2,
+    "dropout": 0.1,
+    "moving_avg": 25,
+    "patch_len": 16,
+    "patch_stride": 8,
+    "crossformer_seg_len": 6,
+    "fedformer_modes": 12,
+    "model_name": "fedformer"
+  },
+  "onenet_mode": "onlinetsf_cross_backbone",
+  "training": {
+    "epochs": 5,
+    "adapter_epochs": 5,
+    "batch_size": 32,
+    "learning_rate": 0.001,
+    "adapter_learning_rate": 0.001,
+    "max_grad_norm": 5.0
+  },
+  "online": {
+    "extra_delay": 2,
+    "period": 24.0
+  }
+}

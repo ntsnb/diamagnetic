@@ -1,0 +1,65 @@
+--- upstream/fedformer/layers/Autoformer_EncDec.py
++++ runtime/fedformer/layers/Autoformer_EncDec.py
+@@ -2,7 +2,7 @@
+ import torch.nn as nn
+ import torch.nn.functional as F
+ import math
+-from layers.SelfAttention_Family import FullAttention
++from third_party.official_forecasters.runtime.fedformer.layers.SelfAttention_Family import FullAttention
+ 
+ 
+ class my_Layernorm(nn.Module):
+--- upstream/fedformer/layers/MultiWaveletCorrelation.py
++++ runtime/fedformer/layers/MultiWaveletCorrelation.py
+@@ -11,8 +11,8 @@
+ from torch import nn, einsum, diagonal
+ from math import log2, ceil
+ import pdb
+-from utils.masking import LocalMask
+-from layers.utils import get_filter
++from third_party.official_forecasters.runtime.fedformer.utils.masking import LocalMask
++from third_party.official_forecasters.runtime.fedformer.layers.utils import get_filter
+ 
+ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+ 
+--- upstream/fedformer/layers/SelfAttention_Family.py
++++ runtime/fedformer/layers/SelfAttention_Family.py
+@@ -7,7 +7,7 @@
+ import numpy as np
+ import math
+ from math import sqrt
+-from utils.masking import TriangularCausalMask, ProbMask
++from third_party.official_forecasters.runtime.fedformer.utils.masking import TriangularCausalMask, ProbMask
+ import os
+ 
+ 
+--- upstream/fedformer/models/FEDformer.py
++++ runtime/fedformer/models/FEDformer.py
+@@ -1,12 +1,12 @@
+ import torch
+ import torch.nn as nn
+ import torch.nn.functional as F
+-from layers.Embed import DataEmbedding, DataEmbedding_wo_pos
+-from layers.AutoCorrelation import AutoCorrelation, AutoCorrelationLayer
+-from layers.FourierCorrelation import FourierBlock, FourierCrossAttention
+-from layers.MultiWaveletCorrelation import MultiWaveletCross, MultiWaveletTransform
+-from layers.SelfAttention_Family import FullAttention, ProbAttention
+-from layers.Autoformer_EncDec import Encoder, Decoder, EncoderLayer, DecoderLayer, my_Layernorm, series_decomp, series_decomp_multi
++from third_party.official_forecasters.runtime.fedformer.layers.Embed import DataEmbedding, DataEmbedding_wo_pos
++from third_party.official_forecasters.runtime.fedformer.layers.AutoCorrelation import AutoCorrelation, AutoCorrelationLayer
++from third_party.official_forecasters.runtime.fedformer.layers.FourierCorrelation import FourierBlock, FourierCrossAttention
++from third_party.official_forecasters.runtime.fedformer.layers.MultiWaveletCorrelation import MultiWaveletCross, MultiWaveletTransform
++from third_party.official_forecasters.runtime.fedformer.layers.SelfAttention_Family import FullAttention, ProbAttention
++from third_party.official_forecasters.runtime.fedformer.layers.Autoformer_EncDec import Encoder, Decoder, EncoderLayer, DecoderLayer, my_Layernorm, series_decomp, series_decomp_multi
+ import math
+ import numpy as np
+ 
+@@ -119,7 +119,7 @@
+                 enc_self_mask=None, dec_self_mask=None, dec_enc_mask=None):
+         # decomp init
+         mean = torch.mean(x_enc, dim=1).unsqueeze(1).repeat(1, self.pred_len, 1)
+-        zeros = torch.zeros([x_dec.shape[0], self.pred_len, x_dec.shape[2]]).to(device)  # cuda()
++        zeros = x_enc.new_zeros([x_dec.shape[0], self.pred_len, x_dec.shape[2]])  # cuda()
+         seasonal_init, trend_init = self.decomp(x_enc)
+         # decoder input
+         trend_init = torch.cat([trend_init[:, -self.label_len:, :], mean], dim=1)

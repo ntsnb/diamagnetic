@@ -1,0 +1,64 @@
+{
+  "seed": 42,
+  "device": "cpu",
+  "cpu_threads": 1,
+  "data": {
+    "path": "C:/Users/admin/Desktop/最近/1.28/IEEE-Transactions-LaTeX2e-templates-and-instructions/dataset/load_benchmarks/panama.csv",
+    "timestamp_column": "datetime",
+    "target_columns": [
+      "nat_demand"
+    ],
+    "feature_columns": [
+      "nat_demand",
+      "T2M_toc",
+      "QV2M_toc",
+      "TQL_toc",
+      "W2M_toc"
+    ],
+    "lookback": 12,
+    "horizon": 4,
+    "train_fraction": 0.6,
+    "validation_fraction": 0.2,
+    "max_rows": 400
+  },
+  "model": {
+    "n_experts": 3,
+    "hidden": 8,
+    "heads": 2,
+    "depth": 1,
+    "latent_block": 4,
+    "encoder": "transformer_style"
+  },
+  "foil": {
+    "rounds": 1,
+    "mil_epochs": 1,
+    "mei_epochs": 1,
+    "batch_size": 32,
+    "seed": 42
+  },
+  "training": {
+    "epochs": 1,
+    "batch_size": 8,
+    "seed": 42
+  },
+  "generator": {
+    "hidden_dim": 8,
+    "epsilon": 0.1
+  },
+  "online": {
+    "reference_windows": 3,
+    "reference_interval": 8,
+    "history_capacity": 32,
+    "extra_delay": 2,
+    "channel_budget": 1
+  },
+  "replay": {
+    "episodes": 1,
+    "max_windows": 12
+  },
+  "test_windows": 12,
+  "variants": [
+    "stages_000",
+    "stages_111"
+  ]
+}

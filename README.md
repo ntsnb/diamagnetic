@@ -1,5 +1,12 @@
 # Time-Series OOD Forecasting Framework
 
+## Current paper implementation (October 2026)
+
+Use [`paper_impl`](README_PAPER_IMPLEMENTATION.md) for the current paper experiments.
+The [nanyang server guide](docs/NANYANG_SETUP_CN.md) covers the environment,
+dataset transfer, frozen configuration migration, and experiment commands.
+The sections below describe the earlier implementation and its entry points.
+
 This repository contains a modular framework for:
 - Invariant learning (FOIL-style MTIL/MTEI)
 - Factor-mechanism forecasting (Transformer + VAE + MoE experts)

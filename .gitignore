@@ -41,3 +41,26 @@ archive/references/extracted_text/
 # Generated experiment artifacts are mostly reproducible or bulky.
 # Curated README files and lightweight manifests can be force-added if needed.
 artifacts/
+
+# Local ZCode runtime databases and transport logs; curated review reports stay visible.
+docs/audit/full_experiment_20261007/zcode_review_run/
+docs/audit/full_experiment_20261007/zcode_round*_launcher_*
+
+# Local datasets, generated experiment outputs, and tool runtime state.
+# These remain on disk; transfer research data to the experiment server separately.
+/data/lishui_online/
+/data/paper_impl_prepared/
+/results/
+/output/
+**/zcode_*_run/
+**/pytest_tmp*/
+**/pytest-tmp*/
+**/.cache/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Machine-specific copies of the frozen experiment matrix.
+/configs/full_experiment/nanyang*/

@@ -1,0 +1,6 @@
+# Author-code dependencies beyond the main torch/numpy requirements.
+# Versions actually exercised by this implementation's smoke tests.
+einops==0.8.1
+scipy==1.16.3
+sympy==1.14.0
+matplotlib==3.10.8

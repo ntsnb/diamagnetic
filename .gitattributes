@@ -1,0 +1,10 @@
+# Frozen configurations and vendored source manifests record byte-level SHA256.
+# Preserve file bytes across Windows/Linux checkouts, including their newlines.
+* -text
+
+# Shell launchers must use Unix newlines on the experiment server.
+*.sh text eol=lf
+
+# Upstream shell scripts are also covered by the source manifests.
+# Preserve these original snapshots instead of rewriting author files.
+third_party/** -text

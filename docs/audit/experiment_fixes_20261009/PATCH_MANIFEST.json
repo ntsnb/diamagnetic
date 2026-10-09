@@ -1,0 +1,37 @@
+{
+  "run_id": "20261009_foil_time_and_two_seed_plan_v1",
+  "completed_at": "2026-10-09T07:33:27.619069+00:00",
+  "repository": "C:\\Users\\admin\\Documents\\杂活\\LoadForecasting_Paper_Implementation_20261007",
+  "branch": "codex/paper-complete-20261007",
+  "changed_core_files_vs_preceding_audit": [
+    "paper_impl\\experiment.py",
+    "paper_impl\\foil.py",
+    "paper_impl\\run.py"
+  ],
+  "source_sha256": {
+    "paper_impl/foil.py": "35837c921266f6ce241133b6b84da49a65e8f5b781f5cb9dc7e331fdd6ee4c9e",
+    "paper_impl/run.py": "9c9a4012267815b49747a1dfc2287553e8b0218f5cfd2edc80c1528e7381b0b4",
+    "paper_impl/experiment.py": "94f0acea07fc0050be68dcf85acaac18b2c0f9955138e20c75cb66b303bcee6a",
+    "tools/build_full_experiment_matrix.py": "7e1055e8db274d11038e5c325db067c1716d8cad7bd7c50fba8f1dab91e0efe6",
+    "tests/paper_impl/test_foil_time_indices.py": "86c66e44a69037512c849d8b2580da954fff631458681f9cba9213cf6fe3c9de",
+    "tests/paper_impl/test_experiment_seeds.py": "240d3857a49367f2cb6505d8cfd6f7e902f7257603dcaf347705701ab768f88b",
+    "tests/paper_impl/test_experiment_dispatch.py": "e28fe3e902a44fda18319d6f307cf7cdc4ce126533dc7ac90ffe2563bfddb3f0",
+    "README_PAPER_IMPLEMENTATION.md": "e83d782173032519a7b33ebf091f887107b39d36cbc2650ce1f4a189b51878b3",
+    "docs/audit/experiment_fixes_20261009/verify_generated_matrix.py": "b42dc0b827bce27b2afd5f68c91bad4aef02e99566a158ef308ab931389aba3c",
+    "docs/audit/experiment_fixes_20261009/IMPLEMENTATION_RECORD.md": "29774efe4f1ee3994f0486e28470e5e67e3a5ba4cd70082155c770d8145fa91d",
+    "configs/full_experiment/structural_seeds42_43/matrix.json": "09f2b0384eec89bdd2ee753ee7f391aefb440d00992404284ff060930877b0de"
+  },
+  "original_seed42_config_hashes_verified": 1794,
+  "original_seed42_matrix_sha256": "36ca5d4c8a46924f64c308c75d92ba3393388fb0b5f9b96c1ddb9f1fe780fd60",
+  "pytest": {
+    "passed": 646,
+    "skipped": 2,
+    "warnings": 2,
+    "seconds": 131.41,
+    "log": "pytest_full.log"
+  },
+  "validation": "generated_plan/validation.json",
+  "formal_training_started": false,
+  "long_task_recovery_changed": false,
+  "manuscript_changed": false
+}

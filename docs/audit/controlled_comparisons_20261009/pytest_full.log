@@ -1,0 +1,21 @@
+....................................ss.................................. [ 10%]
+........................................................................ [ 20%]
+........................................................................ [ 30%]
+........................................................................ [ 40%]
+........................................................................ [ 50%]
+........................................................................ [ 60%]
+........................................................................ [ 70%]
+........................................................................ [ 80%]
+........................................................................ [ 90%]
+.......................................................................  [100%]
+============================== warnings summary ===============================
+tests/paper_impl/test_official_fsnet.py::test_samepad_source_parity_including_trigger_read_write_and_gradient_ema[onenet]
+  C:\Users\admin\Documents\杂活\LoadForecasting_Paper_Implementation_20261007\third_party\official_online\OneNet\models\ts2vec\fsnet_.py:111: UserWarning: Implicit dimension choice for softmax has been deprecated. Change the call to include dim=X as an argument.
+    att = F.softmax(att / 0.5)
+
+tests/paper_impl/test_official_fsnet.py::test_samepad_source_parity_including_trigger_read_write_and_gradient_ema[onlinetsf]
+  C:\Users\admin\Documents\杂活\LoadForecasting_Paper_Implementation_20261007\third_party\official_online\OnlineTSF\layers\ts2vec\fsnet_.py:105: UserWarning: Implicit dimension choice for softmax has been deprecated. Change the call to include dim=X as an argument.
+    att = F.softmax(att/0.5)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+717 passed, 2 skipped, 2 warnings in 128.63s (0:02:08)

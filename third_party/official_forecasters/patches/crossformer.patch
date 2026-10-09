@@ -1,0 +1,39 @@
+--- upstream/crossformer/cross_models/cross_decoder.py
++++ runtime/crossformer/cross_models/cross_decoder.py
+@@ -2,7 +2,7 @@
+ import torch.nn as nn
+ import torch.nn.functional as F
+ from einops import rearrange, repeat
+-from cross_models.attn import FullAttention, AttentionLayer, TwoStageAttentionLayer
++from third_party.official_forecasters.runtime.crossformer.cross_models.attn import FullAttention, AttentionLayer, TwoStageAttentionLayer
+ 
+ class DecoderLayer(nn.Module):
+     '''
+--- upstream/crossformer/cross_models/cross_encoder.py
++++ runtime/crossformer/cross_models/cross_encoder.py
+@@ -2,7 +2,7 @@
+ import torch.nn as nn
+ import torch.nn.functional as F
+ from einops import rearrange, repeat
+-from cross_models.attn import FullAttention, AttentionLayer, TwoStageAttentionLayer
++from third_party.official_forecasters.runtime.crossformer.cross_models.attn import FullAttention, AttentionLayer, TwoStageAttentionLayer
+ from math import ceil
+ 
+ class SegMerging(nn.Module):
+--- upstream/crossformer/cross_models/cross_former.py
++++ runtime/crossformer/cross_models/cross_former.py
+@@ -3,10 +3,10 @@
+ import torch.nn.functional as F
+ from einops import rearrange, repeat
+ 
+-from cross_models.cross_encoder import Encoder
+-from cross_models.cross_decoder import Decoder
+-from cross_models.attn import FullAttention, AttentionLayer, TwoStageAttentionLayer
+-from cross_models.cross_embed import DSW_embedding
++from third_party.official_forecasters.runtime.crossformer.cross_models.cross_encoder import Encoder
++from third_party.official_forecasters.runtime.crossformer.cross_models.cross_decoder import Decoder
++from third_party.official_forecasters.runtime.crossformer.cross_models.attn import FullAttention, AttentionLayer, TwoStageAttentionLayer
++from third_party.official_forecasters.runtime.crossformer.cross_models.cross_embed import DSW_embedding
+ 
+ from math import ceil
+ 
